@@ -80,10 +80,28 @@ curl http://localhost:3000/projects
 
 ## Your tasks
 
-Read the code first — start at `domain/project.ts`, then follow a request
-**inward**: `presentation/projects.controller.ts` → `application/*.use-case.ts` →
-`domain/*` → `infrastructure/*`. `ListProjectsUseCase` and the POST/GET endpoints
-are complete, worked examples. Copy their shape.
+**Before writing anything, spend ~15 minutes reading the existing code** so the
+tasks make sense. Read it from the inside out — the core first, then the layers
+that wrap it:
+
+1. **`domain/project.ts`** — the `Project` entity and the rules it protects.
+   This is the centre; everything else exists to serve it.
+2. **`domain/project.repository.ts`** — the repository *port* (an interface).
+   The use-cases depend on this, never on a real database.
+3. **`application/list-projects.use-case.ts`**, then
+   **`application/create-project.use-case.ts`** — two finished use-cases. Notice
+   the shape: each takes the repository in its constructor and does its work in
+   `execute()`, with no NestJS in the file.
+4. **`presentation/projects.controller.ts`** — see how the finished `POST` and
+   `GET` handlers just call a use-case and map the result. No rules, no DB.
+5. **`infrastructure/in-memory-project.repository.ts`** — the adapter that
+   actually stores data, implementing the port from step 2.
+
+`ListProjectsUseCase` and the `POST`/`GET` endpoints are your **worked
+examples** — the three tasks below are the same patterns applied to new
+behaviour. So when a task says *"write a use-case,"* model it on the use-cases in
+step 3; when it says *"add an endpoint,"* model it on the controller handlers in
+step 4. You're copying the structure, not the logic.
 
 ### TASK 1 — the business rule: no duplicate names
 `src/projects/application/create-project.use-case.ts`. Before saving, reject a

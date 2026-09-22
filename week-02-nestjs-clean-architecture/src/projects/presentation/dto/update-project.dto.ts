@@ -8,6 +8,11 @@
  * Fields you need:
  *   - name:   required, non-empty string, max 120 chars
  *   - client: optional string
+ *
+ * Heads-up: the global ValidationPipe runs with `whitelist: true`, which STRIPS
+ * any property that has no validation decorator. So without the decorators
+ * below, `name`/`client` arrive as `undefined` even when the client sent them.
+ * That is why this DTO needs its decorators, not just its TypeScript types.
  */
 // import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 

@@ -26,3 +26,6 @@ export class ProjectNotFoundError extends DomainError {}
 
 /** The project is already archived, so it cannot be archived again. */
 export class ProjectAlreadyArchivedError extends DomainError {}
+
+/** The project is archived, so it cannot be modified (e.g. renamed). */
+export class ArchivedProjectError extends DomainError {}

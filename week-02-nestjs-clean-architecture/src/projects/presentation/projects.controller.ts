@@ -6,8 +6,9 @@
  * code here, if you find yourself writing an `if` about business rules or a
  * query in this file, it belongs in a use-case or the repository instead.
  *
- * The controller depends INWARD on the application use-cases. It never imports
- * the InMemoryProjectRepository directly.
+ * The `create` (POST) and `list` (GET) handlers below are your WORKED REFERENCE.
+ * Each new endpoint you add is the same three moves: inject the use-case, call
+ * `execute`, map the result with `toProjectView`.
  */
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { CreateProjectUseCase } from '../application/create-project.use-case';
@@ -20,9 +21,10 @@ export class ProjectsController {
   constructor(
     private readonly createProject: CreateProjectUseCase,
     private readonly listProjects: ListProjectsUseCase,
-    // TODO(intern), TASK 3: inject ArchiveProjectUseCase here once it exists and
-    // is provided in projects.module.ts.
-    // private readonly archiveProject: ArchiveProjectUseCase,
+    // As you do each task, inject the use-case you built, e.g.:
+    // private readonly getProject: GetProjectUseCase,      // TASK 1
+    // private readonly archiveProject: ArchiveProjectUseCase, // TASK 2
+    // private readonly updateProject: UpdateProjectUseCase,   // TASK 3
   ) {}
 
   @Post()
@@ -38,15 +40,18 @@ export class ProjectsController {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // TODO(intern), TASK 3: add the archive endpoint.
-  //   Route:  PATCH /projects/:id/archive
-  //   Read the id with @Param('id'), call the archive use-case, return the view.
-  //   Hints: import { Param, Patch } from '@nestjs/common'.
+  // TODO(intern), TASK 1: GET /projects/:id
+  //   Read the id with @Param('id'), call the get use-case, return the view.
+  //   Hint: import { Param } from '@nestjs/common'.
   //
-  //   @Patch(':id/archive')
-  //   async archive(@Param('id') id: string) { ... }
+  // TODO(intern), TASK 2: PATCH /projects/:id/archive
+  //   Call the archive use-case, return the view.
+  //   Hint: import { Patch } from '@nestjs/common'.
   //
-  // The e2e test ("PATCH /projects/:id/archive") turns green once this route
-  // and the wiring in projects.module.ts are done.
+  // TODO(intern), TASK 3: PATCH /projects/:id
+  //   Take an UpdateProjectDto body + the id, call the update use-case.
+  //
+  // Remember to WIRE each use-case in projects.module.ts (do the module provider
+  // and the controller injection together, or the app will not boot).
   // ───────────────────────────────────────────────────────────────────────────
 }

@@ -1,34 +1,31 @@
 /**
- * APPLICATION LAYER, the "archive a project" use-case. ── TASK 2 ──
+ * APPLICATION LAYER, the "get one project" use-case. ── TASK 1 ──
  *
- * This is a STUB for you to implement. Follow the shape of the worked
- * use-cases: take the repository through the constructor, do the work in
- * `execute()`, keep NestJS out of this file.
+ * This is a STUB for you to implement. It is the smallest use-case, do this one
+ * first to get the rhythm. Model it on ListProjectsUseCase and
+ * CreateProjectUseCase.
  */
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
 // You will need this:
 // import { ProjectNotFoundError } from '../domain/project.errors';
 
-export interface ArchiveProjectInput {
+export interface GetProjectInput {
   id: string;
 }
 
-export class ArchiveProjectUseCase {
+export class GetProjectUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
-  async execute(_input: ArchiveProjectInput): Promise<Project> {
+  async execute(_input: GetProjectInput): Promise<Project> {
     // ─────────────────────────────────────────────────────────────────────────
-    // TODO(intern), TASK 2:
+    // TODO(intern), TASK 1:
     //   1. Look up the project by id (`this.projects.findById`).
     //   2. If it does not exist, throw `ProjectNotFoundError`.
-    //   3. Ask the ENTITY to archive itself (`project.archive()`), let the
-    //      domain enforce the "already archived" rule, do not re-implement it here.
-    //   4. Save the project and return it.
+    //   3. Otherwise return it.
     //
-    // Turns green: test/archive-project.use-case.spec.ts and the e2e
-    // "PATCH /:id/archive" test.
+    // Turns green: test/get-project.use-case.spec.ts and the e2e "GET /:id" tests.
     // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: ArchiveProjectUseCase.execute (see TASK 2).');
+    throw new Error('Not implemented yet: GetProjectUseCase.execute (see TASK 1).');
   }
 }

@@ -7,16 +7,20 @@
 > [Clean Architecture in NestJS](https://dev.to/kubabuilds/clean-architecture-in-nestjs-a-practical-guide-101p)
 
 You just did the **Clean Architecture masterclass** and the **NestJS crash course**.
-This exercise makes both of them concrete: you finish a small **Projects API** that
-is already split into the four Clean Architecture layers. You will feel the
-dependency rule instead of just hearing about it.
+This exercise makes both of them concrete. You're given a small **Projects API**
+already split into the four Clean Architecture layers, with **one feature fully
+built as a worked example** (create + list). You extend it — building more
+endpoints yourself, each in the right layer — and you finish by fixing a piece of
+code that breaks the rules on purpose. You'll *feel* the dependency rule instead
+of just hearing about it.
 
 This is the same `Project` feature from the capstone (Intern 4, *Admin & Data*),
 including the rule **"no two projects share a name."** What you practise here is
 exactly what you'll build for real in Weeks 3–4.
 
-> ⚠️ It's normal for several tests to be **red** when you start. Turning them
-> green is the exercise.
+> ⚠️ Lots of tests are **red** when you start (about 17 of 36) — that's the
+> to-do list. Turning them green, and keeping the green ones green, is the
+> exercise. Do the tasks in order; they get harder.
 
 ---
 
@@ -44,11 +48,15 @@ exactly what you'll build for real in Weeks 3–4.
 - **Infrastructure** (`src/projects/infrastructure/`) — the in-memory repository
   that *implements* the domain's port. In Week 4 this becomes DynamoDB, and
   nothing inward will change.
-- **Presentation** (`src/projects/presentation/`) — the controller, DTOs, and the
+- **Presentation** (`src/projects/presentation/`) — the controllers, DTOs, and the
   filter that maps domain errors to HTTP codes.
 
-`test/architecture.spec.ts` **enforces** this rule automatically. If it goes red,
-you broke the direction of a dependency.
+Two tests **enforce** this rule automatically, so you can't drift out of the
+layers by accident:
+- `test/architecture.spec.ts` — the domain and application layers import no
+  NestJS and no outer layer.
+- `test/dependency-rule.controllers.spec.ts` — controllers never reach into the
+  data layer (that one is **red** on purpose until you finish Task 4).
 
 ---
 
@@ -97,39 +105,49 @@ that wrap it:
 5. **`infrastructure/in-memory-project.repository.ts`** — the adapter that
    actually stores data, implementing the port from step 2.
 
-`ListProjectsUseCase` and the `POST`/`GET` endpoints are your **worked
-examples** — the three tasks below are the same patterns applied to new
-behaviour. So when a task says *"write a use-case,"* model it on the use-cases in
-step 3; when it says *"add an endpoint,"* model it on the controller handlers in
-step 4. You're copying the structure, not the logic.
+`CreateProjectUseCase` + `POST /projects` and `ListProjectsUseCase` +
+`GET /projects` are your **worked examples** — a complete vertical slice through
+every layer. Each task below is the same three moves applied to new behaviour:
+**(1)** write a use-case in `application/` (model it on `create`/`list`), **(2)**
+add a provider for it in `projects.module.ts`, **(3)** add a handler in the
+controller that calls it. You're copying the *structure*, not the logic.
 
-### TASK 1 — the business rule: no duplicate names
-`src/projects/application/create-project.use-case.ts`. Before saving, reject a
-name that already exists (`DuplicateProjectNameError`).
-- First answer in your own words: **which layer does this rule belong to, and why
-  not the entity?**
-- Turns green: `create-project.use-case.spec.ts` ("rejects a duplicate name") and
-  the e2e `409` test.
+Every task adds one endpoint end-to-end. **Do the module provider and the
+controller injection together** — if the controller asks for a use-case the
+module doesn't provide, NestJS refuses to boot and *every* e2e test fails with a
+dependency-resolution error (read it; it names the missing provider).
 
-### TASK 2 — a new use-case: archive a project
-`src/projects/application/archive-project.use-case.ts`. Find the project, throw
-`ProjectNotFoundError` if missing, ask the **entity** to `archive()` itself, save.
-- Do **not** re-implement the "already archived" rule here — that lives in the
-  entity. Let the domain own it.
-- Turns green: `archive-project.use-case.spec.ts`.
+### TASK 1 — read one project (warm-up)
+`get-project.use-case.ts` → `GET /projects/:id`. Look the project up; throw
+`ProjectNotFoundError` if it's missing. Wire it, add the route with `@Param('id')`.
+- Turns green: `get-project.use-case.spec.ts` and the two e2e `GET /:id` tests.
 
-### TASK 3 — expose it over HTTP
-Wire `ArchiveProjectUseCase` into `projects.module.ts` (same `useFactory` +
-`inject` pattern as the others), inject it into `projects.controller.ts`, and add
-the route **`PATCH /projects/:id/archive`**.
-- Turns green: the e2e `PATCH /projects/:id/archive` test.
-- **Do the module wiring and the controller injection together.** If you inject
-  `ArchiveProjectUseCase` into the controller but forget to provide it in the
-  module, NestJS can't build the app and *every* e2e test fails with a
-  dependency-resolution error, not just the archive one. Read that error — it
-  names the provider it couldn't resolve.
+### TASK 2 — archive a project
+`archive-project.use-case.ts` → `PATCH /projects/:id/archive`. Find it (404 if
+missing), ask the **entity** to `archive()` itself, save.
+- Do **not** re-implement the "already archived" rule here — that's the entity's
+  job. Let the domain own it.
+- Turns green: `archive-project.use-case.spec.ts` and the e2e archive test.
 
-### Keep the guard green
+### TASK 3 — rename / update a project (the meaty one)
+`update-project.use-case.ts` + `update-project.dto.ts` → `PATCH /projects/:id`.
+Find it (404 if missing), **reuse** the no-duplicate-name rule — but a project
+may keep its *own* name, so only a clash with a **different** id is a duplicate —
+then call `project.rename(name, client)` and save. Build the DTO by modelling it
+on `create-project.dto.ts`.
+- The "can't rename an archived project" rule is the **entity's** job, not yours.
+- Turns green: `update-project.use-case.spec.ts` and the e2e `PATCH /:id` tests.
+
+### TASK 4 — fix the broken controller (refactor)
+`presentation/legacy-projects.controller.ts` breaks the dependency rule on
+purpose: it reaches into the repository and does the counting itself. Refactor it:
+implement `count-active-projects.use-case.ts`, provide it, and make the controller
+call the use-case instead of the repository (remove the repo import).
+- Behaviour must not change — the `active-count` e2e test stays green throughout.
+- Turns green: `count-active-projects.use-case.spec.ts` and
+  `dependency-rule.controllers.spec.ts`.
+
+### Keep the guards green
 `test/architecture.spec.ts` must stay green the whole time. If it breaks, some
 business logic started importing NestJS or an outer layer — move it back.
 
@@ -148,10 +166,14 @@ business logic started importing NestJS or an outer layer — move it back.
 Open a **Pull Request** (it won't be merged — same as last week). In the
 description, answer:
 
-1. Which layer did you put the duplicate-name rule in, and why?
-2. If we swap the in-memory repository for DynamoDB in Week 4, which files change?
-3. Where would a "can't archive an already-archived project" error be thrown, and
-   which layer decides it becomes HTTP `409`?
+1. The no-duplicate-name rule lives in a use-case, not the entity. Why can't the
+   entity enforce it on its own?
+2. If we swap the in-memory repository for DynamoDB in Week 4, which files change
+   — and which definitely don't?
+3. In Task 4, what exactly was wrong with the original `legacy` controller, and
+   which way was its dependency pointing?
+4. A domain error like `ArchivedProjectError` becomes HTTP `409`. Where does that
+   translation happen, and why not in the use-case?
 
 A mentor reviews async and picks one line for you to explain back.
 

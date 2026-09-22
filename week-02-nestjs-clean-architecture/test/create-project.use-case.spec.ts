@@ -1,12 +1,10 @@
 /**
- * Unit tests for CreateProjectUseCase (application layer).
+ * Unit tests for CreateProjectUseCase (application layer). ── worked reference ──
  *
- * The happy-path test passes on the starter. The "rejects a duplicate name"
- * test is RED until you finish TASK 1 in create-project.use-case.ts.
- *
- * Note the test double: we hand the use-case the real InMemoryProjectRepository.
- * Because the use-case depends only on the PORT, we could just as easily pass a
- * fake, that is what ports buy you.
+ * Both tests pass on the starter, this use-case is your template. Note the test
+ * double: we hand the use-case the real InMemoryProjectRepository. Because the
+ * use-case depends only on the PORT, we could just as easily pass a fake, that
+ * is what ports buy you.
  */
 import { CreateProjectUseCase } from '../src/projects/application/create-project.use-case';
 import { InMemoryProjectRepository } from '../src/projects/infrastructure/in-memory-project.repository';
@@ -29,7 +27,6 @@ describe('CreateProjectUseCase', () => {
     expect(await repo.findById(project.id)).not.toBeNull();
   });
 
-  // TASK 1 turns this green.
   it('rejects a duplicate name (case-insensitive)', async () => {
     await createProject.execute({ name: 'Apollo' });
 

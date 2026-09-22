@@ -6,6 +6,7 @@
  */
 import { Project } from '../src/projects/domain/project';
 import {
+  ArchivedProjectError,
   InvalidProjectError,
   ProjectAlreadyArchivedError,
 } from '../src/projects/domain/project.errors';
@@ -37,5 +38,22 @@ describe('Project entity', () => {
   it('refuses to archive a project that is already archived', () => {
     const project = Project.create({ name: 'Apollo', active: false });
     expect(() => project.archive()).toThrow(ProjectAlreadyArchivedError);
+  });
+
+  it('renames an active project and can change its client', () => {
+    const project = Project.create({ name: 'Apollo', client: 'Acme' });
+    project.rename('Artemis', 'Globex');
+    expect(project.name).toBe('Artemis');
+    expect(project.client).toBe('Globex');
+  });
+
+  it('rejects an invalid new name on rename', () => {
+    const project = Project.create({ name: 'Apollo' });
+    expect(() => project.rename('   ')).toThrow(InvalidProjectError);
+  });
+
+  it('refuses to rename an archived project', () => {
+    const project = Project.create({ name: 'Apollo', active: false });
+    expect(() => project.rename('Artemis')).toThrow(ArchivedProjectError);
   });
 });

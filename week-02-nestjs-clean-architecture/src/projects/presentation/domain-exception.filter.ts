@@ -5,7 +5,9 @@
  * is NOT the domain's job to know that "duplicate" means HTTP 409. That mapping
  * is an outer-layer concern, and it lives here, at the boundary.
  *
- * Registered globally in main.ts (and in the e2e test setup).
+ * Registered globally in main.ts (and in the e2e test setup). It is PROVIDED and
+ * already handles every domain error in this exercise, you should not need to
+ * touch it.
  */
 import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
 import type { Response } from 'express';
@@ -16,6 +18,7 @@ const STATUS_BY_ERROR: Record<string, number> = {
   DuplicateProjectNameError: HttpStatus.CONFLICT,
   ProjectNotFoundError: HttpStatus.NOT_FOUND,
   ProjectAlreadyArchivedError: HttpStatus.CONFLICT,
+  ArchivedProjectError: HttpStatus.CONFLICT,
 };
 
 @Catch(DomainError)

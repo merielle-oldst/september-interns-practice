@@ -7,8 +7,7 @@
  */
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
-// You will need this:
-// import { ProjectNotFoundError } from '../domain/project.errors';
+import { ProjectNotFoundError } from '../domain/project.errors';
 
 export interface GetProjectInput {
   id: string;
@@ -20,12 +19,17 @@ export class GetProjectUseCase {
   async execute(_input: GetProjectInput): Promise<Project> {
     // ─────────────────────────────────────────────────────────────────────────
     // TODO(intern), TASK 1:
-    //   1. Look up the project by id (`this.projects.findById`).
-    //   2. If it does not exist, throw `ProjectNotFoundError`.
-    //   3. Otherwise return it.
+    //   1. [/] Look up the project by id (`this.projects.findById`).
+    //   2. [/] If it does not exist, throw `ProjectNotFoundError`.
+    //   3. [/] Otherwise return it.
     //
     // Turns green: test/get-project.use-case.spec.ts and the e2e "GET /:id" tests.
     // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: GetProjectUseCase.execute (see TASK 1).');
+    const matchingProjectId = await this.projects.findById(_input.id)
+    if (!matchingProjectId){
+      throw new ProjectNotFoundError(`Project not found ${_input.id}`);
+    } else{
+      return matchingProjectId;
+    }
   }
 }

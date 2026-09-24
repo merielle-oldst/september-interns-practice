@@ -12,8 +12,7 @@
  */
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
-// You will need these:
-// import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
+import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
 
 export interface UpdateProjectInput {
   id: string;
@@ -27,17 +26,34 @@ export class UpdateProjectUseCase {
   async execute(_input: UpdateProjectInput): Promise<Project> {
     // ─────────────────────────────────────────────────────────────────────────
     // TODO(intern), TASK 3:
-    //   1. Look up the project by id; throw `ProjectNotFoundError` if missing.
-    //   2. Enforce "no duplicate name": if `findByName` returns a project whose
+    //   1. [/] Look up the project by id; throw `ProjectNotFoundError` if missing.
+    //   2. [/] Enforce "no duplicate name": if `findByName` returns a project whose
     //      id is DIFFERENT from this one, throw `DuplicateProjectNameError`.
     //      (Renaming a project to the name it already has must be allowed.)
-    //   3. Call `project.rename(name, client)` — the entity enforces the name
+    //   3. [/] Call `project.rename(name, client)` — the entity enforces the name
     //      rules and the "archived cannot be modified" rule for you.
-    //   4. Save and return the project.
+    //   4. [/] Save and return the project.
     //
     // Turns green: test/update-project.use-case.spec.ts and the e2e
     // "PATCH /:id" tests.
     // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: UpdateProjectUseCase.execute (see TASK 3).');
+
+    const project = await this.projects.findById(_input.id);
+
+    if (!project){
+      throw new ProjectNotFoundError(_input.id);
+    } 
+
+    const matchingProjectName = await this.projects.findByName(_input.name);
+
+    if (matchingProjectName && matchingProjectName.id != project.id){
+      throw new DuplicateProjectNameError(_input.name)
+    }
+
+    project.rename(_input.name, _input.client)
+    await this.projects.save(project)
+
+    return project;
+
   }
 }

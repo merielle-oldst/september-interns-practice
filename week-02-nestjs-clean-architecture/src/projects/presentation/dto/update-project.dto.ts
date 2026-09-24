@@ -16,8 +16,16 @@
  */
 // import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
+import { IsString, IsNotEmpty, MaxLength, IsOptional } from "class-validator";
+
 export class UpdateProjectDto {
-  // TODO(intern), TASK 3: add the validated fields (see create-project.dto.ts).
+  // [/] TODO(intern), TASK 3: add the validated fields (see create-project.dto.ts).
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
   name!: string;
+
+  @IsString()
+  @IsOptional()
   client?: string;
 }

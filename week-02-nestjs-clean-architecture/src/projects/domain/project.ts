@@ -104,7 +104,7 @@ export class Project {
   }
 
   private static normalizeClient(raw?: string): string | undefined {
-    const client = raw?.trim();
+    const client = raw?.trim(); 
     return client ? client : undefined;
   }
 }

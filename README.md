@@ -14,6 +14,15 @@ idea at a time.
 |------|-------|--------|
 | 2 | Backend I — NestJS + Clean Architecture | [`week-02-nestjs-clean-architecture/`](week-02-nestjs-clean-architecture/) |
 
+## Capstone drafts
+
+Some capstone steps produce quick drafts for review rather than a full exercise.
+Those live here (the real capstone is built in the Tempo repo).
+
+| Week | Step | Folder |
+|------|------|--------|
+| 2 · Day 4 | Define your slice's domain (draft shapes + agree Person/Project) | [`capstone-domain-drafts/`](capstone-domain-drafts/) |
+
 ## How to use these
 
 1. `cd` into the week's folder and read its `README.md` first.

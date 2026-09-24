@@ -10,11 +10,17 @@
  * Each new endpoint you add is the same three moves: inject the use-case, call
  * `execute`, map the result with `toProjectView`.
  */
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post } from '@nestjs/common';
 import { CreateProjectUseCase } from '../application/create-project.use-case';
 import { ListProjectsUseCase } from '../application/list-projects.use-case';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { toProjectView } from './project.view';
+
+// Task 1
+import { GetProjectUseCase } from '../application/get-project.use-case';
+import { ArchiveProjectUseCase } from '../application/archive-project.use-case';
+import { UpdateProjectUseCase } from '../application/update-project.use-case';
+import { UpdateProjectDto } from './dto/update-project.dto';
 
 @Controller('projects')
 export class ProjectsController {
@@ -22,9 +28,9 @@ export class ProjectsController {
     private readonly createProject: CreateProjectUseCase,
     private readonly listProjects: ListProjectsUseCase,
     // As you do each task, inject the use-case you built, e.g.:
-    // private readonly getProject: GetProjectUseCase,      // TASK 1
-    // private readonly archiveProject: ArchiveProjectUseCase, // TASK 2
-    // private readonly updateProject: UpdateProjectUseCase,   // TASK 3
+    private readonly getProject: GetProjectUseCase,      // TASK 1
+    private readonly archiveProject: ArchiveProjectUseCase, // TASK 2
+    private readonly updateProject: UpdateProjectUseCase,   // TASK 3
   ) {}
 
   @Post()
@@ -38,7 +44,7 @@ export class ProjectsController {
     const projects = await this.listProjects.execute();
     return projects.map(toProjectView);
   }
-
+  
   // ───────────────────────────────────────────────────────────────────────────
   // TODO(intern), TASK 1: GET /projects/:id
   //   Read the id with @Param('id'), call the get use-case, return the view.
@@ -54,4 +60,23 @@ export class ProjectsController {
   // Remember to WIRE each use-case in projects.module.ts (do the module provider
   // and the controller injection together, or the app will not boot).
   // ───────────────────────────────────────────────────────────────────────────
+  @Get(':id')
+  async getProjectByID(@Param('id') id: string) {
+    const project = await this.getProject.execute({ id });
+    return toProjectView(project);
+  }
+
+  @Patch(':id/archive')
+  async archiveProjectByID(@Param('id') id: string) {
+    const projectToArchive = await this.archiveProject.execute({ id });
+    return toProjectView(projectToArchive);
+  }
+
+  @Patch(':id')
+  async updateProjectByID(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
+    const projectToUpdate = await this.updateProject.execute(
+      { id, name: dto.name, client: dto.client });
+    return toProjectView(projectToUpdate);
+  }
+
 }

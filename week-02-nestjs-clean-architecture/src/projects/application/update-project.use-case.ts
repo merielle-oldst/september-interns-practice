@@ -13,7 +13,7 @@
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
 // You will need these:
-// import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
+import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
 
 export interface UpdateProjectInput {
   id: string;
@@ -38,6 +38,23 @@ export class UpdateProjectUseCase {
     // Turns green: test/update-project.use-case.spec.ts and the e2e
     // "PATCH /:id" tests.
     // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: UpdateProjectUseCase.execute (see TASK 3).');
+
+    const projectToUpdate = await this.projects.findById(_input.id);
+    
+    if (!projectToUpdate) {
+      throw new ProjectNotFoundError(_input.id);
+    }
+
+    const projectName = await this.projects.findByName(_input.name);
+
+    if (projectName && projectName.id !== projectToUpdate.id) {
+      throw new DuplicateProjectNameError(_input.name);
+    }
+
+    projectToUpdate.rename(_input.name, _input.client);
+    await this.projects.save(projectToUpdate);
+
+    return projectToUpdate;
+    // throw new Error('Not implemented yet: UpdateProjectUseCase.execute (see TASK 3).');
   }
 }

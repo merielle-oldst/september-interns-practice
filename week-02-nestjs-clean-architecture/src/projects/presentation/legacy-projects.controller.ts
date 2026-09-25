@@ -3,7 +3,7 @@
  *
  * ⚠️ This is deliberately wrong. It is here for you to FIX.
  *
- * What's wrong: the controller reaches straight into the repository
+ * What's wrong: the controller reaches straight into the repository 
  *  and does business logic (the counting) itself. That
  * points the presentation layer at the data layer and buries a rule in an
  * endpoint, exactly the mistake the dependency rule forbids (and exactly Week 2
@@ -26,12 +26,12 @@ import { CountActiveProjectsUseCase } from '../application/count-active-projects
 @Controller('legacy/projects')
 export class LegacyProjectsController {
   constructor(
-    private readonly repo: CountActiveProjectsUseCase, // ← the smell
+    private readonly countActiveProjects: CountActiveProjectsUseCase,
   ) {}
 
   @Get('active-count')
   async activeCount() {
-    const activeProjectCount = await this.repo.execute();
+    const activeProjectCount = await this.countActiveProjects.execute();
     return {count : activeProjectCount};
   }
 }

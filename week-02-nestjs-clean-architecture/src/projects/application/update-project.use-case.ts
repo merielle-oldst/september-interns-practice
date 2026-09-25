@@ -12,8 +12,7 @@
  */
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
-// You will need these:
-// import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
+import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
 
 export interface UpdateProjectInput {
   id: string;
@@ -24,20 +23,29 @@ export interface UpdateProjectInput {
 export class UpdateProjectUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
-  async execute(_input: UpdateProjectInput): Promise<Project> {
-    // ─────────────────────────────────────────────────────────────────────────
-    // TODO(intern), TASK 3:
-    //   1. Look up the project by id; throw `ProjectNotFoundError` if missing.
-    //   2. Enforce "no duplicate name": if `findByName` returns a project whose
-    //      id is DIFFERENT from this one, throw `DuplicateProjectNameError`.
-    //      (Renaming a project to the name it already has must be allowed.)
-    //   3. Call `project.rename(name, client)` — the entity enforces the name
-    //      rules and the "archived cannot be modified" rule for you.
-    //   4. Save and return the project.
-    //
-    // Turns green: test/update-project.use-case.spec.ts and the e2e
-    // "PATCH /:id" tests.
-    // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: UpdateProjectUseCase.execute (see TASK 3).');
+  async execute(input: UpdateProjectInput): Promise<Project> {
+    const project = await this.projects.findById(input.id);
+    if (!project) {
+      throw new ProjectNotFoundError(`Project ${input.id} was not found.`);
+    }
+
+    // Trimmed here as well as in the entity, because the uniqueness lookup has
+    // to compare the same string the entity will eventually store.
+    const name = (input.name ?? '').trim();
+
+    // Business rule: names are unique ACROSS projects. A project keeping its own
+    // name is not a duplicate, so compare ids before rejecting — without the
+    // id check, renaming "Apollo" to "Apollo" would 409 against itself.
+    const clash = await this.projects.findByName(name);
+    if (clash && clash.id !== project.id) {
+      throw new DuplicateProjectNameError(`A project named "${name}" already exists.`);
+    }
+
+    // The entity owns the rest: the name rules, and refusing to modify an
+    // archived project. We do not re-check either of those here.
+    project.rename(name, input.client);
+
+    await this.projects.save(project);
+    return project;
   }
 }

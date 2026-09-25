@@ -21,11 +21,10 @@ import { PROJECT_REPOSITORY, ProjectRepository } from './domain/project.reposito
 import { InMemoryProjectRepository } from './infrastructure/in-memory-project.repository';
 import { CreateProjectUseCase } from './application/create-project.use-case';
 import { ListProjectsUseCase } from './application/list-projects.use-case';
-// As you build each use-case, import it here and add a provider below:
-// import { GetProjectUseCase } from './application/get-project.use-case';               // TASK 1
-// import { ArchiveProjectUseCase } from './application/archive-project.use-case';       // TASK 2
-// import { UpdateProjectUseCase } from './application/update-project.use-case';         // TASK 3
-// import { CountActiveProjectsUseCase } from './application/count-active-projects.use-case'; // TASK 4
+import { GetProjectUseCase } from './application/get-project.use-case';
+import { ArchiveProjectUseCase } from './application/archive-project.use-case';
+import { UpdateProjectUseCase } from './application/update-project.use-case';
+import { CountActiveProjectsUseCase } from './application/count-active-projects.use-case';
 
 @Module({
   controllers: [ProjectsController, LegacyProjectsController],
@@ -45,12 +44,31 @@ import { ListProjectsUseCase } from './application/list-projects.use-case';
       inject: [PROJECT_REPOSITORY],
     },
 
-    // TODO(intern): add a provider for each use-case you build, using the SAME
-    // useFactory + inject pattern as the two above.
-    //   TASK 1: GetProjectUseCase
-    //   TASK 2: ArchiveProjectUseCase
-    //   TASK 3: UpdateProjectUseCase
-    //   TASK 4: CountActiveProjectsUseCase
+    {
+      provide: GetProjectUseCase,
+      useFactory: (repo: ProjectRepository) => new GetProjectUseCase(repo),
+      inject: [PROJECT_REPOSITORY],
+    },
+
+    {
+      provide: ArchiveProjectUseCase,
+      useFactory: (repo: ProjectRepository) => new ArchiveProjectUseCase(repo),
+      inject: [PROJECT_REPOSITORY],
+    },
+
+    {
+      provide: UpdateProjectUseCase,
+      useFactory: (repo: ProjectRepository) => new UpdateProjectUseCase(repo),
+      inject: [PROJECT_REPOSITORY],
+    },
+
+    // Providing this is what lets LegacyProjectsController stop injecting the
+    // repository: it now asks for a use-case the module builds for it.
+    {
+      provide: CountActiveProjectsUseCase,
+      useFactory: (repo: ProjectRepository) => new CountActiveProjectsUseCase(repo),
+      inject: [PROJECT_REPOSITORY],
+    },
   ],
 })
 export class ProjectsModule {}

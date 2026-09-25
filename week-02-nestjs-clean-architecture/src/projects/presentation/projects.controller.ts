@@ -10,10 +10,14 @@
  * Each new endpoint you add is the same three moves: inject the use-case, call
  * `execute`, map the result with `toProjectView`.
  */
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { CreateProjectUseCase } from '../application/create-project.use-case';
 import { ListProjectsUseCase } from '../application/list-projects.use-case';
+import { GetProjectUseCase } from '../application/get-project.use-case';
+import { ArchiveProjectUseCase } from '../application/archive-project.use-case';
+import { UpdateProjectUseCase } from '../application/update-project.use-case';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
 import { toProjectView } from './project.view';
 
 @Controller('projects')
@@ -21,10 +25,9 @@ export class ProjectsController {
   constructor(
     private readonly createProject: CreateProjectUseCase,
     private readonly listProjects: ListProjectsUseCase,
-    // As you do each task, inject the use-case you built, e.g.:
-    // private readonly getProject: GetProjectUseCase,      // TASK 1
-    // private readonly archiveProject: ArchiveProjectUseCase, // TASK 2
-    // private readonly updateProject: UpdateProjectUseCase,   // TASK 3
+    private readonly getProject: GetProjectUseCase,
+    private readonly archiveProject: ArchiveProjectUseCase,
+    private readonly updateProject: UpdateProjectUseCase,
   ) {}
 
   @Post()
@@ -39,19 +42,28 @@ export class ProjectsController {
     return projects.map(toProjectView);
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // TODO(intern), TASK 1: GET /projects/:id
-  //   Read the id with @Param('id'), call the get use-case, return the view.
-  //   Hint: import { Param } from '@nestjs/common'.
-  //
-  // TODO(intern), TASK 2: PATCH /projects/:id/archive
-  //   Call the archive use-case, return the view.
-  //   Hint: import { Patch } from '@nestjs/common'.
-  //
-  // TODO(intern), TASK 3: PATCH /projects/:id
-  //   Take an UpdateProjectDto body + the id, call the update use-case.
-  //
-  // Remember to WIRE each use-case in projects.module.ts (do the module provider
-  // and the controller injection together, or the app will not boot).
-  // ───────────────────────────────────────────────────────────────────────────
+  @Get(':id')
+  async get(@Param('id') id: string) {
+    const project = await this.getProject.execute({ id });
+    return toProjectView(project);
+  }
+
+  // Declared BEFORE any PATCH /:id route (TASK 3): Nest matches in declaration
+  // order, so the more specific path has to come first or ':id' swallows it.
+  @Patch(':id/archive')
+  async archive(@Param('id') id: string) {
+    const project = await this.archiveProject.execute({ id });
+    return toProjectView(project);
+  }
+
+  // Declared AFTER ':id/archive' so the more specific route wins.
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
+    const project = await this.updateProject.execute({
+      id,
+      name: dto.name,
+      client: dto.client,
+    });
+    return toProjectView(project);
+  }
 }

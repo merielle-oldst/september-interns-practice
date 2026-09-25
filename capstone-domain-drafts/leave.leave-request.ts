@@ -14,9 +14,9 @@ export const LeaveTypeEnum = { // define Leave Type constants inside an object
 } as const;
 
 // a closed set of leave type
-export type LeaveType = (typeof LeaveTypeEnum)[keyof typeof LeaveTypeEnum]
+export type LeaveType = (typeof LeaveTypeEnum)[keyof typeof LeaveTypeEnum];
 
-type LeaveRequest = {
+export type LeaveRequest = {
   id: string,
   personId: string,
   start: string, // date format: YYYY-MM-DD
@@ -24,11 +24,10 @@ type LeaveRequest = {
   type: LeaveType,
   status: LeaveStatus,
   reason?: string,
-  decidedBy?: string, // the id of the person who approved or decline the leave request. It stays empty while pending
-  decidedAt?: string  // it stays empty while pending
-  createdAt: string
+  decidedBy?: string, // the id of the person who approved or declined the leave request. It stays empty while pending
+  decidedAt?: string, // it stays empty while pending
+  createdAt: string   // date format: YYYY-MM-DD
 }
-    
 
 // Rules:
 // - Leave reason up to 500 characters only. 
@@ -41,11 +40,12 @@ type LeaveRequest = {
 // - A request can only be approved or declined once.
 // - 'end' cannot be before 'start'.
 // - Only a pending request can be approved or declined.
-// - Only the hr_manager can approve/decline the leave request.
+// - Only the hr_manager can approve/decline the leave request. 
+//   And nobody can approve their own leave (decidedBy !== personId)
 // - Approved leave should show up as "Leave" in My Week and the Operations View.
 
 // Balance (derived from the person's allowance, never stored):
-// - balance = the person's leaveAllowanceDays (0 or more)
+// - allowance = the person's leaveAllowanceDays (0 or more)
 // - usedDays = total days of the person's APPROVED vacation requests
 // - balance = allowanceDays − usedDays
 // - pending and declined requests don't count toward usedDays

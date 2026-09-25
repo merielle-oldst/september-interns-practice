@@ -7,14 +7,14 @@ export const LeaveStatusEnum = { // define Leave Status constants inside an obje
 // a closed set of leave status
 export type LeaveStatus = (typeof LeaveStatusEnum)[keyof typeof LeaveStatusEnum];
 
-export const LeaveTypeEnum = { // define Leave Tye constants inside an object
-    SICK: 'sick',
-    EMERGENCY: 'emergency',
-    VACATION: 'vacation'
+export const LeaveTypeEnum = { // define Leave Type constants inside an object
+  SICK: 'sick',
+  EMERGENCY: 'emergency',
+  VACATION: 'vacation'
 } as const;
 
 // a closed set of leave type
-export type LeaveType = (typeof LeaveTypeEnum)[keyof typeof LeaveTypeEnum]
+export type LeaveType = (typeof LeaveTypeEnum)[keyof typeof LeaveTypeEnum];
 
 type LeaveRequest {
   id: string,

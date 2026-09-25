@@ -13,7 +13,7 @@
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
 // You will need these:
-// import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
+import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
 
 export interface UpdateProjectInput {
   id: string;
@@ -24,20 +24,24 @@ export interface UpdateProjectInput {
 export class UpdateProjectUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
-  async execute(_input: UpdateProjectInput): Promise<Project> {
-    // ─────────────────────────────────────────────────────────────────────────
-    // TODO(intern), TASK 3:
-    //   1. Look up the project by id; throw `ProjectNotFoundError` if missing.
-    //   2. Enforce "no duplicate name": if `findByName` returns a project whose
-    //      id is DIFFERENT from this one, throw `DuplicateProjectNameError`.
-    //      (Renaming a project to the name it already has must be allowed.)
-    //   3. Call `project.rename(name, client)` — the entity enforces the name
-    //      rules and the "archived cannot be modified" rule for you.
-    //   4. Save and return the project.
-    //
-    // Turns green: test/update-project.use-case.spec.ts and the e2e
-    // "PATCH /:id" tests.
-    // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: UpdateProjectUseCase.execute (see TASK 3).');
+  async execute(input: UpdateProjectInput): Promise<Project> {
+    
+    const projectToUpdate = await this.projects.findById(input.id);
+    
+    if (!projectToUpdate) {
+      throw new ProjectNotFoundError(`Project ${input.id} not found.`);
+    }
+
+    const projectName = await this.projects.findByName(input.name);
+
+    if (projectName && projectName.id !== projectToUpdate.id) {
+      throw new DuplicateProjectNameError(`Project ${input.name} is already existing.`);
+    }
+
+    projectToUpdate.rename(input.name, input.client);
+    await this.projects.save(projectToUpdate);
+
+    return projectToUpdate;
+   
   }
 }

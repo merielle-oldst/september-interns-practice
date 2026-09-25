@@ -14,10 +14,15 @@
  * below, `name`/`client` arrive as `undefined` even when the client sent them.
  * That is why this DTO needs its decorators, not just its TypeScript types.
  */
-// import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateProjectDto {
-  // TODO(intern), TASK 3: add the validated fields (see create-project.dto.ts).
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)  
   name!: string;
+
+  @IsString()
+  @IsOptional()  
   client?: string;
 }

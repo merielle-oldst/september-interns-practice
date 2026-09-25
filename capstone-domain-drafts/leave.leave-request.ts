@@ -16,16 +16,16 @@ export const LeaveTypeEnum = { // define Leave Tye constants inside an object
 // a closed set of leave type
 export type LeaveType = (typeof LeaveTypeEnum)[keyof typeof LeaveTypeEnum]
 
-export class LeaveRequest {
-  private constructor(
-    id: string,
-    personId: string,
-    start: string,
-    end: string,
-    type: LeaveType,
-    status: LeaveStatus,
-    reason?: string
-  ) {}
+type LeaveRequest {
+  id: string,
+  personId: string,
+  start: string,
+  end: string,
+  type: LeaveType,
+  status: LeaveStatus,
+  reason?: string
+}
+    
 
 // Rules:
 // - Leave reason up to 500 characters only. 

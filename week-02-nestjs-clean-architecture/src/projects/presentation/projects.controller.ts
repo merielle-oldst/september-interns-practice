@@ -47,10 +47,10 @@ export class ProjectsController {
   // TODO(intern), TASK 1: GET /projects/:id
   //   Read the id with @Param('id'), call the get use-case, return the view.
   //   Hint: import { Param } from '@nestjs/common'.
-  @Get(':id')  
+  @Get(':id')
   async getProjectById(@Param('id') id: string) {
     const project = await this.getProject.execute({ id });
-    return toProjectView(project)
+    return toProjectView(project);
   }
   //
   // TODO(intern), TASK 2: PATCH /projects/:id/archive
@@ -66,14 +66,14 @@ export class ProjectsController {
   // TODO(intern), TASK 3: PATCH /projects/:id
   //   Take an UpdateProjectDto body + the id, call the update use-case.
   //
-  @Patch(':id') 
+  @Patch(':id')
   async updateProjectByID(
     @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto
   ) {
     const projectToUpdate = await this.updateProject.execute({
       id, name: updateProjectDto.name, client: updateProjectDto.client
-    })
+    });
     return toProjectView(projectToUpdate);
   }
   // Remember to WIRE each use-case in projects.module.ts (do the module provider

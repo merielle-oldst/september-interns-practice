@@ -41,8 +41,8 @@ export class UpdateProjectUseCase {
     const project = await this.projects.findById(input.id);
 
     if (!project) {
-      throw new ProjectNotFoundError(`No project found with ID ${input.id}`)
-    } 
+      throw new ProjectNotFoundError(`No project found with ID ${input.id}`);
+    }
 
     const existing = await this.projects.findByName(input.name);
 
@@ -51,7 +51,6 @@ export class UpdateProjectUseCase {
     }
     project.rename(input.name, input.client);
     await this.projects.save(project);
-    
     return project;
   }
 }

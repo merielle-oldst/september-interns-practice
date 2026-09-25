@@ -29,8 +29,8 @@ export class GetProjectUseCase {
     const project = await this.projects.findById(input.id);
 
     if (!project) {
-      throw new ProjectNotFoundError(`No project found with ID ${input.id}`)
+      throw new ProjectNotFoundError(`No project found with ID ${input.id}`);
     }
-    return project; 
+    return project;
   }
 }

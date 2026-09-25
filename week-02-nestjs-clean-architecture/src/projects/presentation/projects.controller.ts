@@ -44,22 +44,6 @@ export class ProjectsController {
     const projects = await this.listProjects.execute();
     return projects.map(toProjectView);
   }
-  
-  // ───────────────────────────────────────────────────────────────────────────
-  // TODO(intern), TASK 1: GET /projects/:id
-  //   Read the id with @Param('id'), call the get use-case, return the view.
-  //   Hint: import { Param } from '@nestjs/common'.
-  //
-  // TODO(intern), TASK 2: PATCH /projects/:id/archive
-  //   Call the archive use-case, return the view.
-  //   Hint: import { Patch } from '@nestjs/common'.
-  //
-  // TODO(intern), TASK 3: PATCH /projects/:id
-  //   Take an UpdateProjectDto body + the id, call the update use-case.
-  //
-  // Remember to WIRE each use-case in projects.module.ts (do the module provider
-  // and the controller injection together, or the app will not boot).
-  // ───────────────────────────────────────────────────────────────────────────
   @Get(':id')
   async getProjectByID(@Param('id') id: string) {
     const project = await this.getProject.execute({ id });

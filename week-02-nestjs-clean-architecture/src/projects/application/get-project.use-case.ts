@@ -18,15 +18,7 @@ export class GetProjectUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
   async execute(input: GetProjectInput): Promise<Project> {
-    // ─────────────────────────────────────────────────────────────────────────
-    // TODO(intern), TASK 1:
-    //   1. Look up the project by id (`this.projects.findById`).
-    //   2. If it does not exist, throw `ProjectNotFoundError`.
-    //   3. Otherwise return it.
-    //
-    // Turns green: test/get-project.use-case.spec.ts and the e2e "GET /:id" tests.
-    // ─────────────────────────────────────────────────────────────────────────
-    
+   
     const existingProject = await this.projects.findById(input.id);
     
     if (!existingProject) {

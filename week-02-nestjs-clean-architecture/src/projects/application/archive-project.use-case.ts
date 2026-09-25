@@ -18,17 +18,7 @@ export class ArchiveProjectUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
   async execute(input: ArchiveProjectInput): Promise<Project> {
-    // ─────────────────────────────────────────────────────────────────────────
-    // TODO(intern), TASK 2:
-    //   1. Look up the project by id (`this.projects.findById`).
-    //   2. If it does not exist, throw `ProjectNotFoundError`.
-    //   3. Ask the ENTITY to archive itself (`project.archive()`), let the
-    //      domain enforce the "already archived" rule, do not re-implement it here.
-    //   4. Save the project and return it.
-    //
-    // Turns green: test/archive-project.use-case.spec.ts and the e2e
-    // "PATCH /:id/archive" test.
-    // ─────────────────────────────────────────────────────────────────────────
+    
     const existingProject = await this.projects.findById(input.id);
     
     if (!existingProject) {
@@ -38,7 +28,7 @@ export class ArchiveProjectUseCase {
     existingProject.archive();
     await this.projects.save(existingProject);
 
-    return(existingProject);
-    // throw new Error('Not implemented yet: ArchiveProjectUseCase.execute (see TASK 2).');
+    return existingProject;
+    
   }
 }

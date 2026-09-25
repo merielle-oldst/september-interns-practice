@@ -47,8 +47,6 @@ import { CountActiveProjectsUseCase } from './application/count-active-projects.
     },
     
 
-    // TODO(intern): add a provider for each use-case you build, using the SAME
-    // useFactory + inject pattern as the two above.
     //   TASK 1: GetProjectUseCase
 
     {

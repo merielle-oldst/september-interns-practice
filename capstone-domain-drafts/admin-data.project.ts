@@ -8,7 +8,18 @@ export type Project = {
 };
 
 // Project Business rules:
-// - Duplicate names are not allowed
-// - When updating, the name is optional; the project may keep its current name
-// - Archived projects cannot be modified
-// - Archived projects cannot be archived again
+
+// Identity & validation:
+// - Duplicate IDs are not allowed.
+// - A project must have a name.
+// - A project's name cannot exceed 120 characters.
+// - Duplicate project names are not allowed.
+
+// Status:
+// - An archived project cannot be modified.
+// - An archived project cannot be archived again.
+// - An archived project cannot have new hours logged against it.
+
+// Updates:
+// - A project's name and client can be updated independently.
+// - When updating, omitted fields keep their current values.

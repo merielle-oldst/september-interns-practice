@@ -24,7 +24,7 @@ export interface UpdateProjectInput {
 export class UpdateProjectUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
-  async execute(_input: UpdateProjectInput): Promise<Project> {
+  async execute(input: UpdateProjectInput): Promise<Project> {
     // ─────────────────────────────────────────────────────────────────────────
     // TODO(intern), TASK 3:
     //   1. Look up the project by id; throw `ProjectNotFoundError` if missing.
@@ -39,19 +39,19 @@ export class UpdateProjectUseCase {
     // "PATCH /:id" tests.
     // ─────────────────────────────────────────────────────────────────────────
 
-    const projectToUpdate = await this.projects.findById(_input.id);
+    const projectToUpdate = await this.projects.findById(input.id);
     
     if (!projectToUpdate) {
-      throw new ProjectNotFoundError(_input.id);
+      throw new ProjectNotFoundError(`Project ${input.id} not found.`);
     }
 
-    const projectName = await this.projects.findByName(_input.name);
+    const projectName = await this.projects.findByName(input.name);
 
     if (projectName && projectName.id !== projectToUpdate.id) {
-      throw new DuplicateProjectNameError(_input.name);
+      throw new DuplicateProjectNameError(`Project ${input.name} is already existing.`);
     }
 
-    projectToUpdate.rename(_input.name, _input.client);
+    projectToUpdate.rename(input.name, input.client);
     await this.projects.save(projectToUpdate);
 
     return projectToUpdate;

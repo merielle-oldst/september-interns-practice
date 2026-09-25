@@ -1,10 +1,15 @@
 /**
  * APPLICATION LAYER, "count active projects". ── TASK 4 (the refactor target) ──
  *
- * This use-case is where the logic that is CURRENTLY sitting wrongly inside
- * `presentation/legacy-projects.controller.ts` should move to. Right now it is a
- * stub. In TASK 4 you implement it, then rewire the legacy controller to call it
- * instead of touching the repository and doing the counting itself.
+ * This use-case is where the logic that WAS sitting wrongly inside
+ * `presentation/legacy-projects.controller.ts` now lives. The controller asks
+ * this question; it no longer answers it itself, and it no longer touches the
+ * repository to do so.
+ *
+ * The filtering is asked of the repository rather than done here. Loading every
+ * project and discarding the archived ones works, but it makes the application
+ * layer do the data layer's job, and in Week 4 it would mean scanning the whole
+ * table just to count a subset of it.
  */
 import { ProjectRepository } from '../domain/project.repository';
 
@@ -12,12 +17,7 @@ export class CountActiveProjectsUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
   async execute(): Promise<number> {
-    // ─────────────────────────────────────────────────────────────────────────
-    // TODO(intern), TASK 4: move the counting logic here.
-    //   Load all projects and return how many are active.
-    //
-    // Turns green: test/count-active-projects.use-case.spec.ts.
-    // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: CountActiveProjectsUseCase.execute (see TASK 4).');
+    const active = await this.projects.findByStatus(true);
+    return active.length;
   }
 }

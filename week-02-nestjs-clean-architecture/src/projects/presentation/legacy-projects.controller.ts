@@ -26,14 +26,14 @@ import { CountActiveProjectsUseCase } from '../application/count-active-projects
 @Controller('legacy/projects')
 export class LegacyProjectsController {
   constructor(
-    private readonly countActiveProjects: CountActiveProjectsUseCase, // ← the smell
+    private readonly countActiveProjects: CountActiveProjectsUseCase,
   ) {}
 
   @Get('active-count')
   async activeCount() {
     const activeProjectCount = await this.countActiveProjects.execute();
-    return { 
-      count: activeProjectCount 
+    return {
+      count: activeProjectCount
     };
   }
 }

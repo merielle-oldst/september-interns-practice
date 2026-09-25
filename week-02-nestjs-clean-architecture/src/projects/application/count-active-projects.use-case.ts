@@ -14,10 +14,13 @@ export class CountActiveProjectsUseCase {
   async execute(): Promise<number> {
     // ─────────────────────────────────────────────────────────────────────────
     // TODO(intern), TASK 4: move the counting logic here.
-    //   Load all projects and return how many are active.
+    //   [/] Load all projects and return how many are active.
     //
     // Turns green: test/count-active-projects.use-case.spec.ts.
     // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: CountActiveProjectsUseCase.execute (see TASK 4).');
+    const all = await this.projects.findAll();
+    const count = all.filter((project) => project.active).length;
+    return count ;
+
   }
 }

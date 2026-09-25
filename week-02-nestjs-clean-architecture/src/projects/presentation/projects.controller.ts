@@ -10,21 +10,25 @@
  * Each new endpoint you add is the same three moves: inject the use-case, call
  * `execute`, map the result with `toProjectView`.
  */
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { CreateProjectUseCase } from '../application/create-project.use-case';
 import { ListProjectsUseCase } from '../application/list-projects.use-case';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { toProjectView } from './project.view';
+import { ArchiveProjectInput, ArchiveProjectUseCase } from '../application/archive-project.use-case';
+import { GetProjectInput, GetProjectUseCase } from '../application/get-project.use-case';
+import { UpdateProjectInput, UpdateProjectUseCase } from '../application/update-project.use-case';
+import { UpdateProjectDto } from './dto/update-project.dto';
 
 @Controller('projects')
 export class ProjectsController {
   constructor(
     private readonly createProject: CreateProjectUseCase,
     private readonly listProjects: ListProjectsUseCase,
-    // As you do each task, inject the use-case you built, e.g.:
-    // private readonly getProject: GetProjectUseCase,      // TASK 1
-    // private readonly archiveProject: ArchiveProjectUseCase, // TASK 2
-    // private readonly updateProject: UpdateProjectUseCase,   // TASK 3
+    // [/] As you do each task, inject the use-case you built, e.g.:
+    private readonly getProject: GetProjectUseCase,      // TASK 1
+    private readonly archiveProject: ArchiveProjectUseCase, // TASK 2
+    private readonly updateProject: UpdateProjectUseCase,   // TASK 3
   ) {}
 
   @Post()
@@ -41,17 +45,44 @@ export class ProjectsController {
 
   // ───────────────────────────────────────────────────────────────────────────
   // TODO(intern), TASK 1: GET /projects/:id
-  //   Read the id with @Param('id'), call the get use-case, return the view.
+  //   [/] Read the id with @Param('id'), call the get use-case, return the view.
   //   Hint: import { Param } from '@nestjs/common'.
   //
+
+  @Get(':id')
+  async get(@Param('id') id: string){
+    return toProjectView(await this.getProject.execute({id}));
+  }
+
   // TODO(intern), TASK 2: PATCH /projects/:id/archive
-  //   Call the archive use-case, return the view.
+  //   [/] Call the archive use-case, return the view.
   //   Hint: import { Patch } from '@nestjs/common'.
   //
+
+  @Patch(':id/archive')
+  async archive(
+    @Param('id') id: string
+  ){
+    return toProjectView(await this.archiveProject.execute({id}));
+  }
+  
   // TODO(intern), TASK 3: PATCH /projects/:id
-  //   Take an UpdateProjectDto body + the id, call the update use-case.
+  //   [/] Take an UpdateProjectDto body + the id, call the update use-case.
   //
-  // Remember to WIRE each use-case in projects.module.ts (do the module provider
+
+  @Patch(':id')
+  async update(
+    @Body() body: UpdateProjectDto,
+    @Param('id') id: string
+  ){
+    return toProjectView(await this.updateProject.execute({
+      id,
+      name: body.name,
+      client: body.client
+    }));
+  }
+
+  // [/] Remember to WIRE each use-case in projects.module.ts (do the module provider
   // and the controller injection together, or the app will not boot).
   // ───────────────────────────────────────────────────────────────────────────
 }

@@ -18,6 +18,10 @@ export class CountActiveProjectsUseCase {
     //
     // Turns green: test/count-active-projects.use-case.spec.ts.
     // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: CountActiveProjectsUseCase.execute (see TASK 4).');
+
+    const all = await this.projects.findAll();
+    const count = all.filter((project) => project.active).length;
+    return count;
+  
   }
 }

@@ -13,7 +13,7 @@
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
 // You will need these:
-// import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
+import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
 
 export interface UpdateProjectInput {
   id: string;
@@ -24,7 +24,7 @@ export interface UpdateProjectInput {
 export class UpdateProjectUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
-  async execute(_input: UpdateProjectInput): Promise<Project> {
+  async execute(input: UpdateProjectInput): Promise<Project> {
     // ─────────────────────────────────────────────────────────────────────────
     // TODO(intern), TASK 3:
     //   1. Look up the project by id; throw `ProjectNotFoundError` if missing.
@@ -38,6 +38,19 @@ export class UpdateProjectUseCase {
     // Turns green: test/update-project.use-case.spec.ts and the e2e
     // "PATCH /:id" tests.
     // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: UpdateProjectUseCase.execute (see TASK 3).');
+    const project = await this.projects.findById(input.id);
+
+    if (!project) {
+      throw new ProjectNotFoundError(`No project found with ID ${input.id}`);
+    }
+
+    const existing = await this.projects.findByName(input.name);
+
+    if (existing && existing.id !== project.id) {
+      throw new DuplicateProjectNameError(`The project ${input.name} already exists.`);
+    }
+    project.rename(input.name, input.client);
+    await this.projects.save(project);
+    return project;
   }
 }

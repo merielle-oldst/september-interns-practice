@@ -8,7 +8,7 @@
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
 // You will need this:
-// import { ProjectNotFoundError } from '../domain/project.errors';
+import { ProjectNotFoundError } from '../domain/project.errors';
 
 export interface ArchiveProjectInput {
   id: string;
@@ -17,7 +17,7 @@ export interface ArchiveProjectInput {
 export class ArchiveProjectUseCase {
   constructor(private readonly projects: ProjectRepository) {}
 
-  async execute(_input: ArchiveProjectInput): Promise<Project> {
+  async execute(input: ArchiveProjectInput): Promise<Project> {
     // ─────────────────────────────────────────────────────────────────────────
     // TODO(intern), TASK 2:
     //   1. Look up the project by id (`this.projects.findById`).
@@ -29,6 +29,14 @@ export class ArchiveProjectUseCase {
     // Turns green: test/archive-project.use-case.spec.ts and the e2e
     // "PATCH /:id/archive" test.
     // ─────────────────────────────────────────────────────────────────────────
-    throw new Error('Not implemented yet: ArchiveProjectUseCase.execute (see TASK 2).');
+    const project = await this.projects.findById(input.id);
+
+    if (!project) {
+      throw new ProjectNotFoundError(`No project found with ID ${input.id}`);
+    }
+    project.archive();
+    await this.projects.save(project);
+    return project;
+    
   }
 }

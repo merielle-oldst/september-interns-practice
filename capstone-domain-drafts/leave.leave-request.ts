@@ -32,9 +32,17 @@ type LeaveRequest = {
 
 // Rules:
 // - Leave reason up to 500 characters only. 
+// - Leave counts weekdays only.
+// - Leave days = weekdays from start to end, both included.
+//   e.g. Wed 1 Oct → Fri 3 Oct = 3 days; Fri 3 Oct → Mon 6 Oct = 2 days.
+// - start and end can be the same day (a one-day leave).
 // - One person can't have two pending or approved requests whose dates overlap.
 //   Declined requests don't count.
 // - A request can only be approved or declined once.
+// - 'end' cannot be before 'start'.
+// - Only a pending request can be approved or declined.
+// - Only the hr_manager can approve/decline the leave request.
+// - Approved leave should show up as "Leave" in My Week and the Operations View.
 
 // Balance (derived from the person's allowance, never stored):
 // - balance = the person's leaveAllowanceDays (0 or more)

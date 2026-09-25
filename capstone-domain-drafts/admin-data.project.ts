@@ -5,6 +5,7 @@ export class Project {
     private _active: boolean;
 
   // Rules:
+    // - name cannot be longer than 120 characters
     // - client is optional
     // - duplicate names are not allowed
     // - when updating, a project may keep its current name

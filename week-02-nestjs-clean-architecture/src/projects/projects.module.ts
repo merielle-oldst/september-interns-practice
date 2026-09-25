@@ -64,14 +64,6 @@ import { CountActiveProjectsUseCase } from './application/count-active-projects.
       useFactory: (repo: ProjectRepository) => new CountActiveProjectsUseCase(repo),
       inject: [PROJECT_REPOSITORY],
     },
-    
-
-    // TODO(intern): add a provider for each use-case you build, using the SAME
-    // useFactory + inject pattern as the two above.
-    //   TASK 1: GetProjectUseCase
-    //   TASK 2: ArchiveProjectUseCase
-    //   TASK 3: UpdateProjectUseCase
-    //   TASK 4: CountActiveProjectsUseCase
   ],
 })
 export class ProjectsModule {}

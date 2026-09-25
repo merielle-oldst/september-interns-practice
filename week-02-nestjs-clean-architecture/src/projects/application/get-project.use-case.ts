@@ -25,11 +25,12 @@ export class GetProjectUseCase {
     //
     // Turns green: test/get-project.use-case.spec.ts and the e2e "GET /:id" tests.
     // ─────────────────────────────────────────────────────────────────────────
-    const matchingProjectId = await this.projects.findById(_input.id)
-    if (!matchingProjectId){
+    const projectWithMatchingId = await this.projects.findById(_input.id)
+    if (!projectWithMatchingId){
       throw new ProjectNotFoundError(`Project not found ${_input.id}`);
-    } else{
-      return matchingProjectId;
     }
+    
+    return projectWithMatchingId;
+    
   }
 }

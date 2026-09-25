@@ -44,9 +44,9 @@ export class UpdateProjectUseCase {
       throw new ProjectNotFoundError(_input.id);
     } 
 
-    const matchingProjectName = await this.projects.findByName(_input.name);
+    const projectWithMatchingName = await this.projects.findByName(_input.name);
 
-    if (matchingProjectName && matchingProjectName.id != project.id){
+    if (projectWithMatchingName && projectWithMatchingName.id != project.id){
       throw new DuplicateProjectNameError(_input.name)
     }
 

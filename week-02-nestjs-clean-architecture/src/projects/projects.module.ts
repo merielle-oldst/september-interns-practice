@@ -25,6 +25,7 @@ import { GetProjectUseCase } from './application/get-project.use-case';
 import { ArchiveProjectUseCase } from './application/archive-project.use-case';
 import { UpdateProjectUseCase } from './application/update-project.use-case';
 import { CountActiveProjectsUseCase } from './application/count-active-projects.use-case';
+import { ProjectsService } from './application/projects.service';
 
 @Module({
   controllers: [ProjectsController, LegacyProjectsController],
@@ -68,6 +69,28 @@ import { CountActiveProjectsUseCase } from './application/count-active-projects.
       provide: CountActiveProjectsUseCase,
       useFactory: (repo: ProjectRepository) => new CountActiveProjectsUseCase(repo),
       inject: [PROJECT_REPOSITORY],
+    },
+
+    // The application service. It depends on the use-cases rather than on the
+    // repository, so this factory injects the use-case tokens provided above.
+    {
+      provide: ProjectsService,
+      useFactory: (
+        create: CreateProjectUseCase,
+        list: ListProjectsUseCase,
+        get: GetProjectUseCase,
+        archive: ArchiveProjectUseCase,
+        update: UpdateProjectUseCase,
+        countActive: CountActiveProjectsUseCase,
+      ) => new ProjectsService(create, list, get, archive, update, countActive),
+      inject: [
+        CreateProjectUseCase,
+        ListProjectsUseCase,
+        GetProjectUseCase,
+        ArchiveProjectUseCase,
+        UpdateProjectUseCase,
+        CountActiveProjectsUseCase,
+      ],
     },
   ],
 })

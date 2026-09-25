@@ -1,5 +1,5 @@
 /**
- * PRESENTATION LAYER, the (formerly) legacy controller. ── TASK 4, DONE ──
+ * PRESENTATION LAYER, the (formerly) legacy controller.TASK 4 
  *
  * What was wrong before: this controller injected the repository token directly
  * and did the counting itself. That pointed the presentation layer straight at
@@ -9,26 +9,26 @@
  * booting Nest.
  *
  * (The guard in test/dependency-rule.controllers.spec.ts greps the raw file, so
- * even naming the token in a comment fails it — hence the wording above.)
+ * even naming that token in a comment fails it, hence the wording above.)
  *
- * What changed: the counting moved into `CountActiveProjectsUseCase`, and this
- * controller now depends on that use-case instead. The arrow points inward
- * again — presentation → application → domain — and the repository is reached
- * only from behind the use-case.
+ * What changed: the counting moved into CountActiveProjectsUseCase, and this
+ * controller now goes through ProjectsService to reach it, the same way
+ * ProjectsController does. Presentation to application to domain, with the
+ * repository only ever touched from behind the use-case.
  *
  * The endpoint's behaviour is identical; only the direction of the dependency
  * changed. That is what makes it a refactor.
  */
 import { Controller, Get } from '@nestjs/common';
-import { CountActiveProjectsUseCase } from '../application/count-active-projects.use-case';
+import { ProjectsService } from '../application/projects.service';
 
 @Controller('legacy/projects')
 export class LegacyProjectsController {
-  constructor(private readonly countActiveProjects: CountActiveProjectsUseCase) {}
+  constructor(private readonly projects: ProjectsService) {}
 
   @Get('active-count')
   async activeCount() {
-    const count = await this.countActiveProjects.execute();
+    const count = await this.projects.countActive();
     return { count };
   }
 }

@@ -34,4 +34,8 @@ export class InMemoryProjectRepository implements ProjectRepository {
     const target = name.trim().toLowerCase();
     return [...this.store.values()].find((p) => p.name.toLowerCase() === target) ?? null;
   }
+
+  async findByStatus(active: boolean): Promise<Project[]> {
+    return (await this.findAll()).filter((project) => project.active === active);
+  }
 }

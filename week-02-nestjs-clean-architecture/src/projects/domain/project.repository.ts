@@ -25,4 +25,10 @@ export interface ProjectRepository {
   findById(id: string): Promise<Project | null>;
   /** Used to enforce the "no duplicate project names" rule. Case-insensitive. */
   findByName(name: string): Promise<Project | null>;
+  /**
+   * Projects with the given status. Asking the data layer to filter keeps the
+   * query where the data lives, instead of loading everything and throwing most
+   * of it away in the application layer. 
+   */
+  findByStatus(active: boolean): Promise<Project[]>;
 }

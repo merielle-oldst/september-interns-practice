@@ -12,7 +12,11 @@
  */
 import { Project } from '../domain/project';
 import { ProjectRepository } from '../domain/project.repository';
-import { DuplicateProjectNameError, ProjectNotFoundError } from '../domain/project.errors';
+import {
+  DuplicateProjectNameError,
+  InvalidProjectError,
+  ProjectNotFoundError,
+} from '../domain/project.errors';
 
 export interface UpdateProjectInput {
   id: string;
@@ -33,8 +37,16 @@ export class UpdateProjectUseCase {
     // to compare the same string the entity will eventually store.
     const name = (input.name ?? '').trim();
 
+    // Name is required. The entity checks this too, but only once rename() runs,
+    // which is after the uniqueness lookup below. Without this guard an empty
+    // name would first be searched for, and findByName('') would decide the
+    // outcome before the real rule ever got a say.
+    if (name.length === 0) {
+      throw new InvalidProjectError('Project name is required.');
+    }
+
     // Business rule: names are unique ACROSS projects. A project keeping its own
-    // name is not a duplicate, so compare ids before rejecting — without the
+    // name is not a duplicate, so compare ids before rejecting. Without the
     // id check, renaming "Apollo" to "Apollo" would 409 against itself.
     const clash = await this.projects.findByName(name);
     if (clash && clash.id !== project.id) {

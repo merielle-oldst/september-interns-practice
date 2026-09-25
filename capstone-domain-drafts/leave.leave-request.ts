@@ -14,16 +14,19 @@ export const LeaveTypeEnum = { // define Leave Type constants inside an object
 } as const;
 
 // a closed set of leave type
-export type LeaveType = (typeof LeaveTypeEnum)[keyof typeof LeaveTypeEnum];
+export type LeaveType = (typeof LeaveTypeEnum)[keyof typeof LeaveTypeEnum]
 
-type LeaveRequest {
+type LeaveRequest = {
   id: string,
   personId: string,
-  start: string,
-  end: string,
+  start: string, // date format: YYYY-MM-DD
+  end: string,   // date format: YYYY-MM-DD (inclusive)
   type: LeaveType,
   status: LeaveStatus,
-  reason?: string
+  reason?: string,
+  decidedBy?: string, // the id of the person who approved or decline the leave request. It stays empty while pending
+  decidedAt?: string  // it stays empty while pending
+  createdAt: string
 }
     
 
@@ -42,6 +45,4 @@ type LeaveRequest {
 // NEED TO CLARIFY
 // - sick and emergency leave don't count toward usedDays (need confirmation)
 // - does the request also count weekends or weekdays only?
-
-}
 

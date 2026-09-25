@@ -44,9 +44,9 @@ export class UpdateProjectUseCase {
       throw new ProjectNotFoundError(`No project found with ID ${input.id}`)
     } 
 
-    const projectName = await this.projects.findByName(input.name);
+    const existing = await this.projects.findByName(input.name);
 
-    if (projectName && projectName.id !== project.id) {
+    if (existing && existing.id !== project.id) {
       throw new DuplicateProjectNameError(`The project ${input.name} already exists.`);
     }
     project.rename(input.name, input.client);

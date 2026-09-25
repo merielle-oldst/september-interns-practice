@@ -19,7 +19,6 @@ export class CountActiveProjectsUseCase {
     // Turns green: test/count-active-projects.use-case.spec.ts.
     // ─────────────────────────────────────────────────────────────────────────
 
-    // ↓ data access + business logic, both in the wrong layer
     const all = await this.projects.findAll();
     const count = all.filter((project) => project.active).length;
     return count;

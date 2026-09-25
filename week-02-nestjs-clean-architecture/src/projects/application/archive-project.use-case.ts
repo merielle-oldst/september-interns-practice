@@ -32,7 +32,7 @@ export class ArchiveProjectUseCase {
     const project = await this.projects.findById(input.id);
 
     if (!project) {
-      throw new ProjectNotFoundError(`No archived project found with ID ${input.id}`);
+      throw new ProjectNotFoundError(`No project found with ID ${input.id}`);
     }
     project.archive();
     await this.projects.save(project);

@@ -13,6 +13,7 @@ idea at a time.
 | Week | Topic | Folder |
 |------|-------|--------|
 | 2 | Backend I — NestJS + Clean Architecture | [`week-02-nestjs-clean-architecture/`](week-02-nestjs-clean-architecture/) |
+| 4 · Day 2 | Relational vs DynamoDB single-table design | [`week-04-dynamodb-single-table/`](week-04-dynamodb-single-table/) |
 
 ## Capstone drafts
 

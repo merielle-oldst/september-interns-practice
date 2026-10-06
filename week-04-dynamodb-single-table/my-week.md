@@ -1,4 +1,4 @@
-# <Slice name> — Relational vs Single-Table
+# My Week — Relational vs Single-Table
 
 Entities, as drafted in Week 3:
  

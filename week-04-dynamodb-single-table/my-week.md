@@ -154,10 +154,15 @@ CREATE INDEX work_entry_week ON work_entry (week_start);   -- for A7 and A8
 - **A2.** A save is a five-item transaction that must always write all five days. `submittedAt` is copied five times and has to be written together. Relational updates one `week` row. A transactional write also costs twice the write capacity of a normal one, which is negligible here.
 - **The entity is one thing and the storage is another.** The repository has to group and ungroup, and it has to cope with a week that has fewer than five items, which a transaction should make impossible. A plain `Query` is not serializable with a transaction as I read the docs, so a load could in principle see some of the five items updated and the rest not. `TransactGetItems` on the five known keys avoids that.
 - **Composing the week.** Every load and save needs leave (A3), holidays (A4) and, on save, projects (A6), from other slices' partitions. That is separate requests with no joins and no transaction across them. In SQL the leave and holiday reads could be one statement. In both designs a leave approved between the read and the write can slip past `fromSubmission`, which is why `fromStorage` is lenient.
+- **Hours on Project X across weeks.** The entries are nested inside day items, so no key reaches them. Relational answers it with one `GROUP BY project_id`.
 - **Nothing is enforced by the database.** A `CHECK` can enforce `hours > 0 AND hours <= 8` in SQL, but DynamoDB can enforce none of it. The day-total cap depends on leave and holidays from other slices, and "submit only when all five days are filled" spans rows, so neither design can enforce them without triggers. The `Week` entity is the only guard in both. Hardcoding `8` in a `CHECK` would also put that constant in two places.
+- **A6 and the foreign key.** DynamoDB won't reject an unknown `projectId`, so the app must check it on every save.
 - **A3.** A leave range can't be written as a key condition, so the filter runs after the read.
+- **A7 and A8** need `GSI1`, which doesn't exist yet. `hasBlocked` has to be recomputed on every save or it goes stale.
 
 **Still unsure about**
 - Whether Operations really has no date-based reads. I assumed it doesn't.
 - Per-day items versus one item per week. The layout in `keys.ts` is tailored for day plans and is shared across entities so I am not sure if it can be modified.
 - Whether `weekStart` and `submittedAt` should be copied onto each day or kept in a separate week item. I chose the copy because it needs no extra read and can't drift when all five are written together. A week item would put them in one place but make every load two reads.
+- Leave's field names other than `halfDayDate`, and the `GSI1` shape for leave.
+- Concurrent saves. Writes are last-write-wins, and an operations manager can edit a locked week, so a version attribute checked in the transaction may be needed. I haven't added one.

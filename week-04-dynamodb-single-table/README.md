@@ -4,7 +4,7 @@
 
 **Goal:** feel the difference between *relational thinking* and *DynamoDB thinking*.
 
-**Reference:** the AWS single-table design docs, plus the **old-st-template** repo
+**Reference:** the AWS single-table design docs, plus the **Tempo** repo
 (look at how it names keys, prefixes entity types and uses GSIs — follow that house
 style, not just the AWS examples).
 
@@ -53,7 +53,7 @@ for async mentor review. Note anything you're unsure about.
 
 - [ ] Access patterns are listed *before* either design.
 - [ ] Every access pattern is answered in **both** designs.
-- [ ] The single-table design follows old-st-template's key conventions.
+- [ ] The single-table design follows the Tempo repo's key conventions.
 - [ ] The easier/harder section names concrete patterns, not generalities.
 - [ ] Your PR is open for review.
 

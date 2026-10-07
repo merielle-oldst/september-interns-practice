@@ -68,8 +68,6 @@ CREATE TABLE project (
 | A7 | `SELECT * FROM project ORDER BY date_created DESC` |
 | A8 | `SELECT 1 FROM project WHERE LOWER(name) = LOWER($1) AND id <> $2 LIMIT 1` |
 
-```
-```
 
 **## 3. Single-table design**
 
@@ -104,19 +102,6 @@ CREATE TABLE project (
 | A8 | Query     | Requires a project-name lookup/uniqueness key                 |
 
 
-
-## 4. What got easier / what got harder
-
-**Easier**
-- …
-
-**Harder**
-- …
-
-**Still unsure about**
-- …
-
-
 ## 4. What got easier / what got harder
 
 **Easier**
@@ -134,3 +119,4 @@ CREATE TABLE project (
 
 * I'm unsure whether A3 should use a filter on the active people query or have its own GSI for active regular employees.
 * I'm unsure whether the application actually needs A7 and A8, since supporting them in DynamoDB may require additional indexes or lookup keys.
+* I'm unsure whether the CSV export functionality needs its own access pattern or can reuse an existing one.

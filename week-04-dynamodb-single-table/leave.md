@@ -77,18 +77,7 @@ CREATE TABLE leave_request (
 |---|-------|
 | A1 | `SELECT * FROM leave_request WHERE id = $1` |
 | A2 | `SELECT * FROM leave_request WHERE person_id = $1 ORDER BY date_created DESC LIMIT 20` |
-| A3 | `SELECT p.employee_type,
-       p.regularized_at,
-       COALESCE(SUM(lr.leave_days) FILTER (WHERE lr.status = 'approved'), 0) AS approved,
-       COALESCE(SUM(lr.leave_days) FILTER (WHERE lr.status = 'pending'),  0) AS pending
-  FROM person p
-  LEFT JOIN leave_request lr
-         ON lr.person_id = p.id
-        AND lr.type = 'vacation'
-        AND lr.start_date >= make_date($2, 1, 1)
-        AND lr.start_date <  make_date($2 + 1, 1, 1)
- WHERE p.id = $1
- GROUP BY p.id;` |
+| A3 | `SELECT p.employee_type, p.regularized_at, COALESCE(SUM(lr.leave_days) FILTER (WHERE lr.status = 'approved'), 0) AS approved, COALESCE(SUM(lr.leave_days) FILTER (WHERE lr.status = 'pending'),  0) AS pending FROM person p LEFT JOIN leave_request lr ON lr.person_id = p.id AND lr.type = 'vacation' AND lr.start_date >= make_date($2, 1, 1) AND lr.start_date <  make_date($2 + 1, 1, 1) WHERE p.id = $1 GROUP BY p.id;` |
 | A4 | `SELECT lr.*, p.name AS person_name FROM leave_request lr JOIN person p ON p.id = lr.person_id WHERE lr.status = 'pending' ORDER BY lr.date_created ASC` |
 | A5 | `SELECT lr.*, p.name AS person_name FROM leave_request lr JOIN person p ON p.id = lr.person_id WHERE lr.status IN ('pending', 'approved') AND lr.end_date >= $1 AND lr.start_date <= $2 ORDER BY lr.start_date` |
 
@@ -100,7 +89,7 @@ CREATE TABLE leave_request (
 | Entity | PK | SK | GSI1PK | GSI1SK | GSI2PK | GSI2SK |
 |---|---|---|---|---|---|---|
 | Person | `PEOPLE` | `PERSON#<personId>` | | | | |
-| LeaveRequest | `LEAVE#<personId>` | `REQ#<dateCreated>#<id>` | `LEAVEREQ#<id>` | `LEAVEREQ#<id>` | `LEAVE#PENDING` (only while pending) | `<dateCreated>#<id>` (only while pending) |
+| LeaveRequest | `LEAVE#<personId>` | `REQ#<dateCreated>#<id>` | `LEAVEREQ#<id>` | | `LEAVE#PENDING` (only while pending) | `<dateCreated>#<id>` (only while pending) |
 | CalendarMarker (one per month a pending/approved request touches) | `CAL#<yyyy-mm>` | `<start>#<id>` | | | | |
 
 ### Example items (a few rows, as they'd sit in the table)

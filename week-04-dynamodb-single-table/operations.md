@@ -93,6 +93,4 @@ CREATE INDEX holiday_by_date ON holiday (date);
 - A new filter later (for example, only `company` holidays) needs a new index or a filter on read. In SQL it is one more `WHERE`.
 
 **Still unsure about**
-- Whether Admin & Data's `country` holds ISO codes (`PH`) or names. The holiday match only works if both use the same format.
 - Whether `GSI1PK = HOLIDAYS` (one partition for all holidays) is acceptable long-term. It is small today (about 20 holidays per country per year).
-- If anything later needs to reference a holiday by `id`, an id-based GSI would have to come back.

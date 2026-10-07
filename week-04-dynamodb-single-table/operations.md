@@ -92,5 +92,4 @@ CREATE INDEX holiday_by_date ON holiday (date);
 - Rescheduling: the date is part of the key, so moving a holiday is a delete + put transaction instead of one `UPDATE`, and the holiday's identity (country + date) changes.
 - A new filter later (for example, only `company` holidays) needs a new index or a filter on read. In SQL it is one more `WHERE`.
 
-**Still unsure about**
-- Whether `GSI1PK = HOLIDAYS` (one partition for all holidays) is acceptable long-term. It is small today (about 20 holidays per country per year).
+

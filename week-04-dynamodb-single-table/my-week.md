@@ -117,17 +117,14 @@ CREATE INDEX work_entry_week ON work_entry (week_start);   -- for A3 and A4
 **Easier**
 - **A1.** One `Query` on one partition returns the days in date order with their entries already nested. There is no join and no reassembling rows into days. A wider range gives several weeks of history for free.
 - **The `WorkEntry` union.** Each kind stores only its own fields, in order. The relational table needs `position`, nullable `project_id`, `waiting_on` and `note` columns, and five `CHECK`s to say which kinds may use them.
-- **A7.** A key lookup on one index, with no `GROUP BY` over a growing table.
+- **A3.** A key lookup on one index, with no `GROUP BY` over a growing table.
 
 **Harder**
 - **A2.** A save is a five-item transaction that must always write all five days. `submittedAt` is copied five times and has to be written together. Relational updates one `week` row. A transactional write also costs twice the write capacity of a normal one, which is negligible here.
 - **The entity is one thing and the storage is another.** The repository has to group and ungroup, and it has to cope with a week that has fewer than five items, which a transaction should make impossible. A plain `Query` is not serializable with a transaction as I read the docs, so a load could in principle see some of the five items updated and the rest not. `TransactGetItems` on the five known keys avoids that.
-- **Composing the week.** Every load and save needs leave (A3), holidays (A4) and, on save, projects (A6), from other slices' partitions. That is separate requests with no joins and no transaction across them. In SQL the leave and holiday reads could be one statement. In both designs a leave approved between the read and the write can slip past `fromSubmission`, which is why `fromStorage` is lenient.
-- **Hours on Project X across weeks.** The entries are nested inside day items, so no key reaches them. Relational answers it with one `GROUP BY project_id`.
+- **Composing the week.** Every load and save (A1, A2) needs data from other slices: the person's country (Admin & Data A1), the holidays for that country (Operations A1), the person's leave (Leave A2) and, on save, the projects (Admin & Data A4). That is separate requests with no joins and no transaction across them. In SQL the country, holiday and leave reads could be one statement. In both designs a leave approved between the read and the write can slip past `fromSubmission`, which is why `fromStorage` is lenient.
 - **Nothing is enforced by the database.** A `CHECK` can enforce `hours > 0 AND hours <= 8` in SQL, but DynamoDB can enforce none of it. The day-total cap depends on leave and holidays from other slices, and "submit only when all five days are filled" spans rows, so neither design can enforce them without triggers. The `Week` entity is the only guard in both. Hardcoding `8` in a `CHECK` would also put that constant in two places.
-- **A6 and the foreign key.** DynamoDB won't reject an unknown `projectId`, so the app must check it on every save.
-- **A3.** A leave range can't be written as a key condition, so the filter runs after the read.
-- **A7 and A8** need `GSI1`, which doesn't exist yet. `hasBlocked` has to be recomputed on every save or it goes stale.
+- **Leave.** Leave's keys group a person's requests under `LEAVE#<personId>` but sort them by creation time, so which requests overlap the week can't be a key condition. The service reads the person's requests and filters them in memory.
 
 **Still unsure about**
 - Whether Operations really has no date-based reads. I assumed it doesn't.

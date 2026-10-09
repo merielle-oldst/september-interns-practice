@@ -58,25 +58,25 @@ CREATE INDEX holiday_by_date ON holiday (date);
 
 **Keys per entity**
 
-| Entity | PK | SK | GSI1PK | GSI1SK | GSI2PK | GSI2SK |
-|--------|----|----|--------|--------|--------|--------|
-| Holiday | `HOLIDAYS#<countryCode>` | `DATE#<isoDate>` | `HOLIDAYS` | `DATE#<isoDate>#<countryCode>` | `HOLIDAY#<id>` | `HOLIDAY#<id>` |
+| Entity | PK | SK | GSI1PK | GSI1SK | GSI2PK |
+|--------|----|----|--------|--------|--------|
+| Holiday | `HOLIDAYS#<countryCode>` | `DATE#<isoDate>` | `HOLIDAYS` | `DATE#<isoDate>#<countryCode>` | `HOLIDAY#<id>` |
 
 - `PK` is the country, because every single-country read (A1, A3, A4) is scoped to one country.
 - `SK` is the date. ISO dates sort correctly as strings, so `BETWEEN` returns any week or year in date order.
 - `PK + SK` is (countryCode, date), so the key itself enforces one holiday per country per date (A5).
 - GSI1 puts every holiday under one partition sorted by date, so the cross-country week (A2) and the year list (A7) are each a single Query. The country is appended to `GSI1SK` to keep two countries' holidays on the same date distinct.
-- GSI2 is a point lookup by id (A6), the same `ENTITY#<value>` shape Tempo uses for its by-email GSI. The id never changes, so GSI2 finds the holiday even after its date (and so its main key) moves.
+- GSI2 is a point lookup by id (A6), the same `ENTITY#<value>` shape Tempo uses for its by-email GSI. The id never changes, so GSI2 finds the holiday even after its date (and so its main key) moves. GSI2 has no sort key: the id is unique, so each partition holds exactly one item.
 - The country never changes: Tempo's `Holiday.reschedule()` only accepts a new date or name. A holiday in a different country is a new holiday, so only the `SK` can move, never the `PK`.
 
 **Example items**
 
-| PK | SK | GSI1PK | GSI1SK | GSI2PK | GSI2SK | type | …attributes |
-|----|----|--------|--------|--------|--------|------|-------------|
-| `HOLIDAYS#PH` | `DATE#2026-12-25` | `HOLIDAYS` | `DATE#2026-12-25#PH` | `HOLIDAY#h1` | `HOLIDAY#h1` | Holiday | id=h1, name=Christmas Day, source=national |
-| `HOLIDAYS#PH` | `DATE#2026-12-30` | `HOLIDAYS` | `DATE#2026-12-30#PH` | `HOLIDAY#h2` | `HOLIDAY#h2` | Holiday | id=h2, name=Rizal Day, source=national |
-| `HOLIDAYS#ZA` | `DATE#2026-12-16` | `HOLIDAYS` | `DATE#2026-12-16#ZA` | `HOLIDAY#h3` | `HOLIDAY#h3` | Holiday | id=h3, name=Day of Reconciliation, source=national |
-| `HOLIDAYS#ZA` | `DATE#2026-12-25` | `HOLIDAYS` | `DATE#2026-12-25#ZA` | `HOLIDAY#h4` | `HOLIDAY#h4` | Holiday | id=h4, name=Christmas Day, source=national |
+| PK | SK | GSI1PK | GSI1SK | GSI2PK | type | …attributes |
+|----|----|--------|--------|--------|------|-------------|
+| `HOLIDAYS#PH` | `DATE#2026-12-25` | `HOLIDAYS` | `DATE#2026-12-25#PH` | `HOLIDAY#h1` | Holiday | id=h1, name=Christmas Day, source=national |
+| `HOLIDAYS#PH` | `DATE#2026-12-30` | `HOLIDAYS` | `DATE#2026-12-30#PH` | `HOLIDAY#h2` | Holiday | id=h2, name=Rizal Day, source=national |
+| `HOLIDAYS#ZA` | `DATE#2026-12-16` | `HOLIDAYS` | `DATE#2026-12-16#ZA` | `HOLIDAY#h3` | Holiday | id=h3, name=Day of Reconciliation, source=national |
+| `HOLIDAYS#ZA` | `DATE#2026-12-25` | `HOLIDAYS` | `DATE#2026-12-25#ZA` | `HOLIDAY#h4` | Holiday | id=h4, name=Christmas Day, source=national |
 
 **How each access pattern is served**
 

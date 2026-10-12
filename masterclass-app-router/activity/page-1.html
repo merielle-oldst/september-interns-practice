@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page 1 — Blog / Article</title>
+<style>
+  :root{ --ink:#1a1a1a; --muted:#666; --bg:#fafafa; --surface:#fff; --line:#e5e5e5; --accent:#4f46e5; --accent-soft:#eef0fd; }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--ink); line-height:1.6; }
+  header.site{ background:var(--surface); border-bottom:1px solid var(--line); }
+  .site-inner{ max-width:800px; margin:0 auto; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .logo{ font-weight:700; font-size:18px; }
+  nav a{ color:var(--muted); text-decoration:none; margin-left:22px; font-size:14px; }
+  .wrap{ max-width:800px; margin:0 auto; padding:48px 24px 80px; }
+  .tag{ font-family:ui-monospace,monospace; font-size:12px; color:var(--accent); background:var(--accent-soft); display:inline-block; padding:3px 9px; border-radius:999px; margin-bottom:16px; }
+  h1{ font-size:36px; margin:0 0 18px; line-height:1.2; }
+  .byline{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; margin-bottom:36px; }
+  .avatar{ width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#a5b4fc,#4f46e5); }
+  article p{ font-size:17px; margin:0 0 20px; }
+  blockquote{ border-left:3px solid var(--accent); margin:28px 0; padding:4px 20px; font-size:19px; font-style:italic; color:#333; }
+  code.inline{ background:#f1f1f3; padding:2px 6px; border-radius:4px; font-size:14px; }
+  .share-row{ display:flex; gap:10px; margin:36px 0; padding:16px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); align-items:center; }
+  .share-btn{ width:34px; height:34px; border-radius:8px; background:var(--surface); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--muted); }
+  .like-btn{ margin-left:auto; display:flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--surface); border-radius:999px; padding:8px 16px; font-size:14px; color:#e11d48; }
+  .related{ margin-top:48px; }
+  .related h2{ font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .related-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:14px; }
+  .related-card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .related-thumb{ height:80px; background:linear-gradient(135deg,#e0e7ff,#c7d2fe); }
+  .related-card p{ padding:10px 12px; font-size:13px; margin:0; }
+  .comments{ margin-top:48px; }
+  .comments h2{ font-size:18px; margin-bottom:18px; }
+  .comment{ display:flex; gap:12px; margin-bottom:18px; }
+  .comment .avatar{ width:30px; height:30px; flex-shrink:0; }
+  .comment-body{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:14px; }
+  .comment-body .who{ font-weight:600; font-size:13px; margin-bottom:3px; }
+  .comment-form{ margin-top:20px; }
+  .comment-form textarea{ width:100%; min-height:80px; border:1px solid var(--line); border-radius:8px; padding:12px; font-family:inherit; font-size:14px; resize:vertical; }
+  .comment-form button{ margin-top:10px; background:var(--accent); color:#fff; border:none; padding:9px 20px; border-radius:8px; font-size:14px; cursor:default; }
+  footer{ border-top:1px solid var(--line); padding:28px 24px; text-align:center; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+  <header class="site">
+    <div class="site-inner">
+      <div class="logo">Daily Dev Digest</div>
+      <nav><a>Home</a><a>Articles</a><a>About</a></nav>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <span class="tag">PAGE 1</span>
+    <h1>Why Most Teams Over-Use Client Components</h1>
+    <div class="byline">
+      <div class="avatar"></div>
+      <span>Priya Nandakumar · Oct 9, 2026 · 6 min read</span>
+    </div>
+
+    <article>
+      <p>When the App Router shipped, a lot of teams did the easy thing: slap <code class="inline">'use client'</code> at the top of every file and move on. It works, but it quietly undoes most of the benefit of the new model.</p>
+      <p>The directive isn't free. Every file it touches — and everything that file imports — gets pulled into the client bundle, whether or not it actually needs to run in the browser.</p>
+      <blockquote>"'use client' is an opt-in, not a default you reach for out of habit."</blockquote>
+      <p>A good rule of thumb: start every new component as a Server Component. Only add the directive when the compiler actually complains, or when you reach for a hook, a handler, or a browser-only API.</p>
+      <p>In practice this means your page shells, your layout chrome, and your static display primitives almost never need it — it's the small, genuinely interactive leaves of the tree that do.</p>
+    </article>
+
+    <div class="share-row">
+      <div class="share-btn">in</div>
+      <div class="share-btn">𝕏</div>
+      <div class="share-btn">⎘</div>
+      <div class="like-btn">♥ 128</div>
+    </div>
+
+    <div class="related">
+      <h2>Related reading</h2>
+      <div class="related-grid">
+        <div class="related-card"><div class="related-thumb"></div><p>The hydration mental model, explained simply</p></div>
+        <div class="related-card"><div class="related-thumb"></div><p>Static export: what you give up</p></div>
+        <div class="related-card"><div class="related-thumb"></div><p>Composing Server and Client trees</p></div>
+      </div>
+    </div>
+
+    <div class="comments">
+      <h2>12 comments</h2>
+      <div class="comment">
+        <div class="avatar"></div>
+        <div class="comment-body"><div class="who">devrel_sam</div>This finally clicked for me after the third re-read. Thanks for the restaurant analogy link.</div>
+      </div>
+      <div class="comment">
+        <div class="avatar"></div>
+        <div class="comment-body"><div class="who">kquach</div>Curious how this plays with static export specifically — any follow-up planned?</div>
+      </div>
+      <div class="comment-form">
+        <textarea placeholder="Add a comment..."></textarea>
+        <button>Post comment</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 2026 Daily Dev Digest</footer>
+</body>
+</html>

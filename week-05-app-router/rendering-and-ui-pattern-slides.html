@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Render &amp; Reveal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700;8..60,900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#070a09; --surface:#111613; --surface-2:#171f1a;
+    --ink:#f2f6f3; --ink-muted:#8fa399;
+    --line:#223029; --line-strong:#344439;
+    --server:#2fe3b4; --server-soft:rgba(47,227,180,.14); --server-line:rgba(47,227,180,.4);
+    --client:#ffa358; --client-soft:rgba(255,163,88,.14); --client-line:rgba(255,163,88,.4);
+    --quiz:#c49bff; --quiz-soft:rgba(196,155,255,.14); --quiz-line:rgba(196,155,255,.4);
+    --code-bg:#050806; --code-ink:#d8f3e7;
+    --shadow: 0 10px 40px -12px rgba(0,0,0,.6);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{ height:100%; }
+  body{
+    margin:0; color:var(--ink); font-family:'IBM Plex Sans', system-ui, sans-serif; line-height:1.5; overflow:hidden;
+    background:
+      radial-gradient(1200px 620px at 18% -12%, rgba(196,155,255,.12), transparent 60%),
+      radial-gradient(1000px 560px at 100% 8%, rgba(47,227,180,.10), transparent 55%),
+      radial-gradient(900px 500px at 50% 115%, rgba(255,163,88,.08), transparent 55%),
+      var(--bg);
+  }
+  h1,h2,h3{ font-family:'Source Serif 4', Georgia, serif; text-wrap:balance; color:var(--ink); letter-spacing:-.01em; margin:0; }
+  code, pre, .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+
+  /* ---------- Deck shell ---------- */
+  .deck{ position:fixed; inset:0; display:flex; flex-direction:column; }
+  .topbar{ height:5px; background:var(--line); flex-shrink:0; }
+  .progress{ height:100%; background:linear-gradient(90deg,var(--quiz),var(--server)); width:2.3%; transition:width .25s ease; }
+  .slides{ flex:1; min-height:0; position:relative; }
+  .slide{ position:absolute; inset:0; display:none; flex-direction:column; padding:6vh 7vw 3vh 9vw; overflow-y:auto; --accent:var(--quiz); }
+  .slide::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--accent); }
+  .slide.active{ display:flex; animation:slideIn .22s ease; }
+  @keyframes slideIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+  .slide-inner{ max-width:1280px; margin:0 auto; width:100%; flex:1; display:flex; flex-direction:column; gap:30px; justify-content:center; }
+
+  .kicker{ font-family:'IBM Plex Mono'; font-size:13.5px; letter-spacing:.12em; text-transform:uppercase; font-weight:600; display:inline-flex; align-items:center; gap:8px; padding:7px 16px 7px 11px; border-radius:999px; align-self:flex-start; border:1px solid; }
+  .kicker .dot{ width:8px; height:8px; border-radius:50%; }
+  .kicker.k-quiz{ color:var(--quiz); background:var(--quiz-soft); border-color:var(--quiz-line); } .kicker.k-quiz .dot{ background:var(--quiz); }
+  .kicker.k-server{ color:var(--server); background:var(--server-soft); border-color:var(--server-line); } .kicker.k-server .dot{ background:var(--server); }
+  .kicker.k-client{ color:var(--client); background:var(--client-soft); border-color:var(--client-line); } .kicker.k-client .dot{ background:var(--client); }
+  .kicker.k-both{ color:var(--ink); background:var(--surface-2); border-color:var(--line-strong); } .kicker.k-both .dot{ background:linear-gradient(90deg,var(--server) 50%,var(--client) 50%); }
+
+  .slide-title{ font-size:clamp(32px,4.4vw,66px); font-weight:700; line-height:1.1; }
+  .hero-title{ font-size:clamp(48px,7.6vw,108px); font-weight:900; line-height:1.03; }
+  .punch-title{ font-family:'Source Serif 4', Georgia, serif; font-weight:800; font-size:clamp(40px,5.8vw,84px); line-height:1.08; text-wrap:balance; color:var(--ink); margin:0; }
+  .slide-sub{ color:var(--ink-muted); font-size:clamp(17px,1.7vw,23px); max-width:78ch; }
+  .slide-body{ flex:1; display:flex; flex-direction:column; gap:22px; justify-content:center; }
+
+  .big-num{ position:absolute; right:5vw; top:2vh; font-family:'Source Serif 4'; font-weight:900; font-size:clamp(90px,14vw,220px); color:var(--surface-2); line-height:1; z-index:0; user-select:none; }
+
+  .navbar{ height:56px; flex-shrink:0; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; padding:0 20px; gap:12px; background:var(--surface); }
+  .nav-group{ display:flex; align-items:center; gap:10px; }
+  .nav-btn{ font-family:'IBM Plex Mono'; font-size:13px; font-weight:600; padding:8px 16px; border-radius:8px; border:1px solid var(--line-strong); background:var(--surface-2); color:var(--ink); cursor:pointer; }
+  .nav-btn:hover{ border-color:var(--quiz); color:var(--quiz); }
+  .nav-btn:disabled{ opacity:.3; cursor:default; }
+  .counter{ font-family:'IBM Plex Mono'; font-size:12.5px; color:var(--ink-muted); white-space:nowrap; }
+  .jump{ font-family:'IBM Plex Mono'; font-size:12px; border:1px solid var(--line-strong); border-radius:8px; padding:7px 10px; background:var(--surface-2); color:var(--ink); max-width:240px; }
+  .notes-toggle{ font-family:'IBM Plex Mono'; font-size:11.5px; padding:6px 12px; border-radius:999px; border:1px solid var(--line-strong); background:var(--surface-2); color:var(--ink-muted); cursor:pointer; }
+  .notes-toggle.on{ color:var(--server); border-color:var(--server-line); background:var(--server-soft); }
+
+  /* ---------- Content primitives ---------- */
+  ul.bullets, ol.bullets{ margin:0; padding-left:26px; display:flex; flex-direction:column; gap:14px; }
+  ul.bullets li, ol.bullets li{ font-size:clamp(18px,2vw,25px); }
+  ol.steps{ margin:0; padding-left:22px; display:flex; flex-direction:column; gap:10px; }
+  ol.steps li{ font-size:16px; }
+  ol.steps code{ font-size:14px; }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:start; }
+  @media (max-width:800px){ .two-col{ grid-template-columns:1fr; } }
+
+  .case-box{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px 24px; box-shadow:var(--shadow); font-size:17.5px; }
+  .case-box .k{ font-family:'IBM Plex Mono'; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-muted); display:block; margin-bottom:9px; }
+
+  .prompt-badge{ display:inline-flex; flex-direction:column; gap:8px; border-radius:var(--radius); padding:20px 26px; font-size:clamp(18px,2vw,24px); color:var(--ink); background:var(--quiz-soft); border:1px solid var(--quiz-line); }
+  .prompt-badge b{ font-family:'IBM Plex Mono'; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--quiz); }
+
+  .callout{ padding:20px 24px; border-radius:var(--radius); background:var(--surface); border:1px solid var(--line); font-size:18px; }
+  .callout.insight{ border-left:4px solid var(--client); }
+  .callout.insight .k{ font-family:'IBM Plex Mono'; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--client); display:block; margin-bottom:7px; }
+  .callout.answer{ border-left:4px solid var(--server); background:var(--server-soft); }
+  .callout.answer .k{ font-family:'IBM Plex Mono'; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--server); display:block; margin-bottom:7px; }
+  .callout.career{ border-left:4px solid var(--quiz); background:var(--quiz-soft); }
+  .callout.career .k{ font-family:'IBM Plex Mono'; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--quiz); display:block; margin-bottom:7px; }
+  .presenter-strip{ margin-top:auto; font-size:13px; color:var(--ink-muted); border-top:1px dashed var(--line-strong); padding-top:10px; }
+  .presenter-strip b{ font-family:'IBM Plex Mono'; font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-muted); }
+  body:not(.notes-on) .presenter-strip{ display:none; }
+
+  .file-tag{ font-family:'IBM Plex Mono'; font-size:12px; color:var(--ink-muted); display:flex; align-items:center; gap:8px; }
+  .tag{ font-family:'IBM Plex Mono'; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:4px 10px; border-radius:5px; border:1px solid; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+  .tag-server{ background:var(--server-soft); color:var(--server); border-color:var(--server-line); }
+  .tag-client{ background:var(--client-soft); color:var(--client); border-color:var(--client-line); }
+  .tag-neutral{ background:var(--surface-2); color:var(--ink-muted); border-color:var(--line-strong); }
+  pre.code{ background:var(--code-bg); color:var(--code-ink); border-radius:var(--radius); padding:18px 22px; overflow-x:auto; font-size:clamp(14px,1.5vw,18px); line-height:1.6; box-shadow:var(--shadow); border:1px solid var(--line); border-top:3px solid var(--line-strong); margin:0; }
+  pre.code[data-tag="server"]{ border-top-color:var(--server); }
+  pre.code[data-tag="client"]{ border-top-color:var(--client); }
+
+  table.matrix{ width:100%; border-collapse:collapse; font-size:clamp(14px,1.45vw,18px); }
+  table.matrix th, table.matrix td{ border:1px solid var(--line); padding:13px 16px; text-align:left; vertical-align:top; }
+  table.matrix th{ font-family:'IBM Plex Mono'; font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-muted); background:var(--surface); }
+  table.matrix td{ background:var(--surface); }
+  table.matrix td.dim{ font-weight:700; white-space:nowrap; color:var(--ink); }
+  table.matrix td.blank{ color:var(--line-strong); text-align:center; font-family:'IBM Plex Mono'; border-style:dashed; background:transparent; }
+  table.matrix td.rsc{ background:var(--quiz-soft); }
+
+  /* ---------- Static option list (no click) ---------- */
+  .opt-list{ display:flex; flex-wrap:wrap; gap:12px; }
+  .opt-pill{ font-family:'IBM Plex Sans'; font-size:17px; padding:12px 22px; border-radius:999px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); }
+  .opt-pill.yes-answer{ border-color:var(--server-line); background:var(--server-soft); color:var(--server); font-weight:700; }
+  .code-chip{ background:var(--code-bg); color:var(--code-ink); border-radius:10px; padding:14px 18px; font-size:15.5px; margin:4px 0; overflow-x:auto; border:1px solid var(--line); }
+
+  .gauge{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .gauge-cell{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; font-size:16.5px; }
+  .gauge-cell .n{ font-family:'IBM Plex Mono'; font-size:11px; color:var(--quiz); display:block; margin-bottom:6px; }
+
+  /* ---------- Flowcharts ---------- */
+  .fc-wrap{ display:flex; justify-content:center; }
+  .fc-wrap svg{ width:100%; height:auto; max-width:1040px; }
+  .fc-node-server{ fill:var(--server-soft); stroke:var(--server); stroke-width:2; }
+  .fc-node-client{ fill:var(--client-soft); stroke:var(--client); stroke-width:2; }
+  .fc-node-neutral{ fill:var(--surface); stroke:var(--line-strong); stroke-width:2; }
+  .fc-node-ghost{ fill:transparent; stroke:var(--line-strong); stroke-width:2; stroke-dasharray:5 4; }
+  .fc-node-both{ fill:var(--surface-2); stroke:var(--line-strong); stroke-width:2; }
+  .fc-label{ fill:var(--ink); font-family:'IBM Plex Sans',sans-serif; font-size:15px; }
+  .fc-label-sm{ fill:var(--ink-muted); font-family:'IBM Plex Mono',monospace; font-size:11px; }
+  .fc-arrow{ stroke:var(--ink-muted); stroke-width:2; fill:none; }
+  .arrow-head-fill{ fill:var(--ink-muted); }
+  .fc-boundary{ fill:none; stroke:var(--client); stroke-width:2; stroke-dasharray:6 5; }
+  .fc-q{ fill:var(--ink-muted); font-family:'IBM Plex Mono'; font-size:22px; font-weight:700; }
+  .fc-lane-client{ fill:var(--client-soft); opacity:.55; }
+  .fc-lane-server{ fill:var(--server-soft); opacity:.55; }
+  .fc-lane-neutral{ fill:var(--surface-2); opacity:.8; }
+  .fc-lane-label{ font-family:'IBM Plex Mono'; font-size:12px; font-weight:700; letter-spacing:.08em; }
+  .fc-lane-label-client{ fill:var(--client); }
+  .fc-lane-label-server{ fill:var(--server); }
+  .fc-lane-label-neutral{ fill:var(--ink-muted); }
+  .fc-arrow-gap{ stroke:var(--line-strong); stroke-width:2; fill:none; stroke-dasharray:5 5; opacity:.7; }
+
+  /* ---------- Static activity badge ---------- */
+  .time-badge{ display:flex; align-items:center; gap:18px; }
+  .time-num{ font-family:'IBM Plex Mono'; font-size:56px; font-weight:700; color:var(--server); line-height:1; }
+  .time-label{ font-family:'IBM Plex Mono'; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-muted); }
+
+  /* ---------- Whiteboard (presenter types live) ---------- */
+  .whiteboard{ flex:1; min-height:280px; border:1.5px dashed var(--line-strong); border-radius:var(--radius); padding:26px 30px; font-size:20px; line-height:1.7; color:var(--ink); background:var(--surface); outline:none; overflow-y:auto; }
+  .whiteboard:empty:before{ content:attr(data-placeholder); color:var(--ink-muted); }
+  .whiteboard:focus{ border-color:var(--quiz-line); border-style:solid; }
+
+  ::selection{ background:var(--quiz-soft); color:var(--ink); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow-head-fill" d="M0,0L10,5L0,10z"/></marker>
+</defs></svg>
+
+<div class="deck" id="deck">
+  <div class="topbar"><div class="progress" id="progress"></div></div>
+  <div class="slides" id="slides">
+
+    <!-- 1 Title -->
+    <section class="slide hero" data-title="Title" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Guest workshop · CS/IT seniors</div>
+        <h1 class="hero-title">Rendering &amp; the<br/>@old-st/ui Pattern</h1>
+        <p class="slide-sub">Part 1 — how Next.js decides what runs where. Part 2 — how a real production component library makes the exact same decision.</p>
+        <p class="slide-sub mono" style="margin-top:20px;">— Regina · Frontend Engineering</p>
+      </div>
+    </section>
+
+    <!-- icebreaker -->
+    <section class="slide hero" data-title="Icebreaker" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Before we start</div>
+        <h2 class="hero-title">What's your current<br/>watch / read / listen?</h2>
+        <p class="slide-sub">Pick one — a show, a book, a podcast, an album, whatever's actually in rotation right now. Drop it in chat.</p>
+      </div>
+    </section>
+
+    <!-- 2 How today works -->
+    <section class="slide" data-title="How today works" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Warm-up</div>
+        <h2 class="slide-title">How today works</h2>
+        <div class="slide-body">
+          <ul class="bullets">
+            <li><b>Pulse check</b> — four quick questions. Drop your answer in chat before I reveal.</li>
+            <li><b>Part 1</b> — four rendering strategies: CSR, SSR, SSG, RSC. Process, examples, and a head-to-head comparison.</li>
+            <li><b>Part 2</b> — the same question, asked by a real component library: <code>@old-st/ui</code>.</li>
+            <li><b>Close</b> — a recap quiz, then an applied scenario. Chat your answers, I'll read a few out.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 Q1 ask -->
+    <section class="slide" data-title="Pulse check Q1" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Pulse check · 1 of 4</div>
+        <h2 class="slide-title">Where was this page's HTML actually created?</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="opt-list">
+            <div class="opt-pill">Always on your machine, built by JavaScript</div>
+            <div class="opt-pill">Always on a remote server, before it reaches you</div>
+            <div class="opt-pill">Could be either — depends on the app</div>
+            <div class="opt-pill">HTML isn't "created," it's just a file that exists</div>
+          </div>
+          <p class="slide-sub">Drop your answer in chat — I'll reveal next.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 Q1 reveal -->
+    <section class="slide" data-title="Q1 — answer" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Answer</div>
+        <h2 class="punch-title">Could be either — it depends on the app.</h2>
+        <div class="callout answer"><span class="k">Why</span>That "depends" is the entire subject of today — where a piece of UI gets built is a decision made per component, not per app.</div>
+      </div>
+    </section>
+
+    <!-- 5 Q2 ask -->
+    <section class="slide" data-title="Pulse check Q2" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Pulse check · 2 of 4</div>
+        <h2 class="slide-title">True or false: "hydration" means the browser re-downloads a fresh copy of the HTML.</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="opt-list"><div class="opt-pill">True</div><div class="opt-pill">False</div></div>
+          <p class="slide-sub">Drop True/False in chat.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 Q2 reveal -->
+    <section class="slide" data-title="Q2 — answer" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Answer</div>
+        <h2 class="punch-title">False.</h2>
+        <div class="callout answer"><span class="k">Why</span>Hydration attaches JS behavior — click handlers, state — to HTML that already arrived. No new HTML, just wiring up interactivity on top of what's already there.</div>
+      </div>
+    </section>
+
+    <!-- 7 Q3 ask -->
+    <section class="slide" data-title="Pulse check Q3" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Pulse check · 3 of 4</div>
+        <h2 class="slide-title">True or false: in Next.js App Router, every component ships its JS to the browser by default.</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="opt-list"><div class="opt-pill">True</div><div class="opt-pill">False</div></div>
+          <p class="slide-sub">Drop True/False in chat.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 Q3 reveal -->
+    <section class="slide" data-title="Q3 — answer" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Answer</div>
+        <h2 class="punch-title">False.</h2>
+        <div class="callout answer"><span class="k">Why</span>The default is the opposite — zero JS ships unless a component opts in. That opt-in is a one-line directive, coming up in Part 1.</div>
+      </div>
+    </section>
+
+    <!-- 9 Q4 ask -->
+    <section class="slide" data-title="Pulse check Q4" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Pulse check · 4 of 4</div>
+        <h2 class="slide-title">Server or Client Component — and how do you know?</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="code-chip">'use client';
+
+export default function ChangePasswordPage() {
+  const [saving, setSaving] = useState(false);
+  ...
+}</div>
+          <p class="slide-sub">Drop your answer + reasoning in chat.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 Q4 reveal -->
+    <section class="slide" data-title="Q4 — answer" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Answer</div>
+        <h2 class="punch-title">Client Component.</h2>
+        <div class="callout answer"><span class="k">Two tells, either is enough alone</span>The <code>'use client'</code> directive at the top, and the <code>useState</code> hook — hooks only run in the browser.</div>
+      </div>
+    </section>
+
+    <!-- 11 gauge -->
+    <section class="slide" data-title="Pulse-check gauge" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Presenter cue</div>
+        <h2 class="slide-title">Calibrate the primer from here</h2>
+        <div class="slide-body">
+          <div class="gauge">
+            <div class="gauge-cell"><span class="n">Chat got 0–1 right</span>Run the full primer (next 4 slides), ~6 min.</div>
+            <div class="gauge-cell"><span class="n">Chat got 2–3 right</span>Skim vocab only (last primer slide), ~2 min.</div>
+            <div class="gauge-cell"><span class="n">Chat got 4/4</span>Skip the primer — jump straight to Part 1.</div>
+          </div>
+        </div>
+        <div class="presenter-strip"><b>Presenter note</b> Narrate the transition rather than reading this slide aloud — it's for you.</div>
+      </div>
+    </section>
+
+    <!-- 12 primer client/server -->
+    <section class="slide" data-title="Primer: client vs server" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>Primer · optional</div>
+        <h2 class="slide-title">Two computers, one conversation</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 900 220">
+            <rect class="fc-node-client" x="30" y="70" width="220" height="80" rx="12"/>
+            <text class="fc-label" x="140" y="115" text-anchor="middle">Browser</text>
+            <text class="fc-label-sm" x="140" y="135" text-anchor="middle">("the client")</text>
+            <rect class="fc-node-server" x="650" y="70" width="220" height="80" rx="12"/>
+            <text class="fc-label" x="760" y="115" text-anchor="middle">Server</text>
+            <text class="fc-label-sm" x="760" y="135" text-anchor="middle">owns code + data</text>
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M255,95 L645,95"/>
+            <text class="fc-label-sm" x="450" y="85" text-anchor="middle">request — "give me /search?q=cats"</text>
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M645,135 L255,135"/>
+            <text class="fc-label-sm" x="450" y="160" text-anchor="middle">response — HTML / JSON / files</text>
+          </svg></div>
+          <p class="slide-sub" style="text-align:center;">Loading a page is this conversation, every time — the question is always <em>where</em> each step runs and <em>when</em>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13 primer rendering -->
+    <section class="slide" data-title="Primer: what is rendering" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>Primer · optional</div>
+        <h2 class="slide-title">What "rendering" means</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 900 160">
+            <rect class="fc-node-neutral" x="20" y="40" width="220" height="80" rx="12"/>
+            <text class="fc-label" x="130" y="75" text-anchor="middle">Code</text>
+            <text class="fc-label" x="130" y="98" text-anchor="middle">+ Data</text>
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M245,80 L370,80"/>
+            <rect class="fc-node-both" x="370" y="40" width="160" height="80" rx="12"/>
+            <text class="fc-label" x="450" y="85" text-anchor="middle">Rendering</text>
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M535,80 L660,80"/>
+            <rect class="fc-node-neutral" x="660" y="40" width="220" height="80" rx="12"/>
+            <text class="fc-label" x="770" y="75" text-anchor="middle">HTML</text>
+            <text class="fc-label" x="770" y="98" text-anchor="middle">/ pixels you see</text>
+          </svg></div>
+          <p class="slide-sub" style="text-align:center;">Two open questions every framework has to answer: <strong>where</strong> does this happen (browser or server)? <strong>when</strong> (once, ahead of time — or fresh, every visit)?</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 14 primer build/runtime -->
+    <section class="slide" data-title="Primer: build time vs runtime" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>Primer · optional</div>
+        <h2 class="slide-title">Build time vs. runtime</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="fc-wrap"><svg viewBox="0 0 1200 220">
+            <rect class="fc-node-neutral" x="20" y="40" width="210" height="60" rx="10"/>
+            <text class="fc-label" x="125" y="63" text-anchor="middle" font-size="13">Dev writes code</text>
+            <text class="fc-label-sm" x="125" y="81" text-anchor="middle">raw .tsx / .ts source</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M235,70 L260,70"/>
+            <rect class="fc-node-server" x="270" y="40" width="210" height="60" rx="10"/>
+            <text class="fc-label" x="375" y="63" text-anchor="middle" font-size="13">Build compiles it</text>
+            <text class="fc-label-sm" x="375" y="81" text-anchor="middle">next build — splits into bundles</text>
+
+            <line x1="520" y1="10" x2="520" y2="110" stroke="var(--line-strong)" stroke-width="2" stroke-dasharray="6 5"/>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M485,70 L535,70"/>
+            <rect class="fc-node-client" x="545" y="40" width="160" height="60" rx="10"/>
+            <text class="fc-label" x="625" y="70" text-anchor="middle" font-size="13">Client</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M710,70 L750,70"/>
+            <rect class="fc-node-server" x="760" y="40" width="160" height="60" rx="10"/>
+            <text class="fc-label" x="840" y="70" text-anchor="middle" font-size="13">Server</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M925,70 L965,70"/>
+            <rect class="fc-node-client" x="975" y="40" width="200" height="60" rx="10"/>
+            <text class="fc-label" x="1075" y="63" text-anchor="middle" font-size="13">Client again</text>
+            <text class="fc-label-sm" x="1075" y="81" text-anchor="middle">receives the result, renders</text>
+
+            <path class="fc-arrow-gap" marker-end="url(#arrowhead)" d="M1075,100 C1075,160 625,160 625,100"/>
+            <text class="fc-label-sm" x="850" y="178" text-anchor="middle">repeats — once per visitor, every single visit</text>
+
+            <text class="fc-label-sm" x="250" y="200" text-anchor="middle">BUILD TIME — once, ahead of time</text>
+            <text class="fc-label-sm" x="870" y="200" text-anchor="middle">RUNTIME — client ↔ server ↔ client, per visit</text>
+          </svg></div>
+          <div class="two-col">
+            <div class="case-box"><span class="k">What triggers build time?</span>A developer (or a CI/CD pipeline) running <code>next build</code> — normally as part of shipping a new deploy. It fires once per deploy, for everyone, not once per visitor.</div>
+            <div class="case-box"><span class="k">What triggers runtime?</span>A real visitor doing something — their browser loading the page (always true for anything client-side), or, only if there's a live server behind the app, their request hitting that server fresh.</div>
+          </div>
+          <div class="callout insight"><span class="k">Does this always happen?</span>Not necessarily both. Some apps have no live server at all once deployed — in that case "runtime" only ever means "in the visitor's browser," and whatever ran at build time never runs again for anyone. We'll see exactly where that applies later in Part 1.</div>
+        </div>
+        <div class="presenter-strip"><b>Presenter note</b> The key thing this diagram adds: build doesn't just "run the code once" — it <em>splits</em> it into two different compiled outputs, one that ships to the browser and one that stays on the server. Everything left of the dashed line happens exactly once, no matter how many visitors show up. Everything right of it — client → server → client — is the SAME three-step handshake repeating for every single visit. CSR/SSR/SSG/RSC, coming up next, are really just different answers to "how much of that right-hand loop actually touches the server?"</div>
+      </div>
+    </section>
+
+    <!-- 15 primer vocab -->
+    <section class="slide" data-title="Primer: vocab" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>Primer · optional</div>
+        <h2 class="slide-title">Vocabulary you'll hear today</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <table class="matrix">
+            <tr><th>Term</th><th>Plain meaning</th></tr>
+            <tr><td class="dim">DOM</td><td>The browser's live, in-memory tree of the page.</td></tr>
+            <tr><td class="dim">Bundle</td><td>The JS file(s) the browser downloads to run client-side code.</td></tr>
+            <tr><td class="dim">Hydration</td><td>Attaching interactivity to HTML that already arrived.</td></tr>
+            <tr><td class="dim">Directive</td><td>A string like <code>'use client'</code> that changes how a file is treated.</td></tr>
+            <tr><td class="dim">Static vs. dynamic</td><td>Built once, same for all vs. rebuilt per request/interaction.</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 16 Part1 framing -->
+    <section class="slide hero" data-title="Part 1 framing" style="--accent:var(--server)">
+      <div class="big-num">01</div>
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Part One</div>
+        <h1 class="hero-title">FE Rendering<br/>Strategies</h1>
+        <p class="slide-sub">Four ways to answer one question: where + when does this page get built?</p>
+        <ul class="bullets" style="margin-top:8px;">
+          <li><b>CSR</b> — Client-Side Rendering</li>
+          <li><b>SSR</b> — Server-Side Rendering</li>
+          <li><b>SSG</b> — Static Site Generation</li>
+          <li><b>RSC</b> — React Server Components</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 17 CSR process -->
+    <section class="slide" data-title="CSR process" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>CSR · process</div>
+        <h2 class="slide-title">Client-Side Rendering</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 1000 300">
+            <rect class="fc-lane-client" x="0" y="12" width="1000" height="118"/>
+            <rect class="fc-lane-server" x="0" y="170" width="1000" height="118"/>
+            <text class="fc-lane-label fc-lane-label-client" x="14" y="30">BROWSER</text>
+            <text class="fc-lane-label fc-lane-label-server" x="14" y="188">SERVER / API</text>
+
+            <rect class="fc-node-client" x="20" y="35" width="190" height="55" rx="10"/>
+            <text class="fc-label" x="115" y="58" text-anchor="middle" font-size="13">Browser requests</text>
+            <text class="fc-label" x="115" y="76" text-anchor="middle" font-size="13">the page</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M120,90 L140,195"/>
+            <rect class="fc-node-server" x="20" y="195" width="220" height="55" rx="10"/>
+            <text class="fc-label" x="130" y="218" text-anchor="middle" font-size="13">Sends empty shell</text>
+            <text class="fc-label" x="130" y="236" text-anchor="middle" font-size="13">+ JS bundle</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M135,195 L440,90"/>
+            <rect class="fc-node-client" x="320" y="35" width="240" height="55" rx="10"/>
+            <text class="fc-label" x="440" y="58" text-anchor="middle" font-size="13">Browser parses JS,</text>
+            <text class="fc-label" x="440" y="76" text-anchor="middle" font-size="13">requests data</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M440,90 L435,195"/>
+            <rect class="fc-node-server" x="320" y="195" width="230" height="55" rx="10"/>
+            <text class="fc-label" x="435" y="218" text-anchor="middle" font-size="13">Sends JSON data</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M435,195 L720,90"/>
+            <rect class="fc-node-client" x="620" y="35" width="200" height="55" rx="10"/>
+            <text class="fc-label" x="720" y="68" text-anchor="middle" font-size="13">Browser paints</text>
+
+            <text class="fc-label-sm" x="130" y="268" text-anchor="middle">round trip #1 — just getting code</text>
+            <text class="fc-label-sm" x="435" y="268" text-anchor="middle">round trip #2 — getting data</text>
+          </svg></div>
+        </div>
+        <div class="presenter-strip"><b>Presenter note</b> There are TWO separate round trips, not one — walk them explicitly. The first only fetches code (shell + JS bundle); nothing meaningful is on screen yet. Only once that JS has run does the SECOND trip happen, to fetch actual data. Good live question: "why can't the browser ask for the shell and the data at the same time?" — because it doesn't know what data it needs until the JS defining that need has already executed.</div>
+      </div>
+    </section>
+
+    <!-- 18 CSR example -->
+    <section class="slide" data-title="CSR example" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>CSR · example</div>
+        <h2 class="slide-title">What it looks like</h2>
+        <div class="slide-body">
+          <div class="two-col">
+            <pre class="code" data-tag="client"><code>function Dashboard() {
+  const [data, setData] = useState(null);
+  useEffect(() =&gt; {
+    fetch('/api/stats')
+      .then(r =&gt; r.json())
+      .then(setData);
+  }, []);
+  return data ? &lt;Chart data={data}/&gt; : &lt;Spinner/&gt;;
+}</code></pre>
+            <div class="case-box"><span class="k">Real-world case</span>Classic SPAs (create-react-app era), internal admin dashboards, Gmail-style apps — SEO usually doesn't matter.</div>
+          </div>
+          <div class="prompt-badge"><b>Ask the room</b>Where exactly does the loading spinner sit in the flowchart we just drew? Chat it.</div>
+        </div>
+        <div class="presenter-strip"><b>Code walkthrough</b> <code>useState(null)</code> starts with no data at all. <code>useEffect(..., [])</code> — empty dependency array — runs exactly once, right after this component first mounts IN THE BROWSER; that's the moment round trip #2 fires. Until <code>setData</code> resolves, the component returns <code>&lt;Spinner/&gt;</code>; once it resolves, it re-renders with <code>&lt;Chart/&gt;</code>. Nothing here could run on a server at all — there's no DOM, no DOM to attach the spinner to, until a browser exists.<br><br><b>Answer to "ask the room"</b> The spinner lives in the gap between "browser parses JS" and "sends JSON data" — during the SECOND round trip, not the first. During round trip #1 (getting the shell + bundle) there's typically nothing rendered at all — a blank page. The spinner only appears once enough JS has run to render a loading state while it waits on the data fetch.</div>
+      </div>
+    </section>
+
+    <!-- 19 SSR process -->
+    <section class="slide" data-title="SSR process" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>SSR · process</div>
+        <h2 class="slide-title">Server-Side Rendering</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 1080 300">
+            <rect class="fc-lane-client" x="0" y="12" width="1080" height="118"/>
+            <rect class="fc-lane-server" x="0" y="170" width="1080" height="118"/>
+            <text class="fc-lane-label fc-lane-label-client" x="14" y="30">BROWSER</text>
+            <text class="fc-lane-label fc-lane-label-server" x="14" y="188">SERVER</text>
+
+            <rect class="fc-node-client" x="20" y="35" width="190" height="55" rx="10"/>
+            <text class="fc-label" x="115" y="68" text-anchor="middle" font-size="13">Browser requests the page</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M135,90 L160,195"/>
+            <rect class="fc-node-server" x="20" y="195" width="260" height="55" rx="10"/>
+            <text class="fc-label" x="150" y="218" text-anchor="middle" font-size="13">Runs code, fetches data</text>
+            <text class="fc-label-sm" x="150" y="265" text-anchor="middle">happens again, every single request</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M280,222 L300,222"/>
+            <rect class="fc-node-server" x="310" y="195" width="230" height="55" rx="10"/>
+            <text class="fc-label" x="425" y="228" text-anchor="middle" font-size="13">Builds the full HTML</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M420,195 L700,90"/>
+            <rect class="fc-node-client" x="560" y="35" width="270" height="55" rx="10"/>
+            <text class="fc-label" x="695" y="58" text-anchor="middle" font-size="13">Browser receives HTML,</text>
+            <text class="fc-label" x="695" y="76" text-anchor="middle" font-size="13">paints immediately</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M830,62 L860,62"/>
+            <rect class="fc-node-client" x="860" y="35" width="200" height="55" rx="10"/>
+            <text class="fc-label" x="960" y="58" text-anchor="middle" font-size="13">Browser hydrates</text>
+            <text class="fc-label" x="960" y="76" text-anchor="middle" font-size="13">(attaches JS)</text>
+          </svg></div>
+        </div>
+        <div class="presenter-strip"><b>Presenter note</b> Say the caption out loud: "happens again, every single request." Contrast directly with SSG two slides from now — the diagrams look almost identical except WHEN that server work happens. Also flag: hydration still has to finish before anything is clickable, even though the HTML arrived instantly — the visitor sees content right away but can't interact with it yet.</div>
+      </div>
+    </section>
+
+    <!-- 20 SSR example -->
+    <section class="slide" data-title="SSR example" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>SSR · example</div>
+        <h2 class="slide-title">What it looks like</h2>
+        <div class="slide-body">
+          <div class="file-tag"><span class="tag tag-neutral">Pages Router syntax</span> App Router does this differently — see Part 1's RSC section</div>
+          <div class="two-col">
+            <pre class="code" data-tag="server"><code>export async function getServerSideProps({ params }) {
+  const product = await db.getProduct(params.id);
+  return { props: { product } };
+}
+export default function ProductPage({ product }) {
+  return &lt;ProductView product={product}/&gt;;
+}</code></pre>
+            <div class="case-box"><span class="k">Real-world case</span>Amazon-style product pages — price/stock can't be stale, so it's recomputed on every visit.</div>
+          </div>
+          <div class="prompt-badge"><b>Ask the room</b>If the server is slow right now, what does the visitor experience that CSR's visitor wouldn't? Chat it.</div>
+        </div>
+        <div class="presenter-strip"><b>Code walkthrough</b> <code>getServerSideProps</code> is a specially-named export Next.js looks for — if present, it's called ON THE SERVER, for every request, BEFORE the page component ever runs. <code>params.id</code> comes straight from the URL (e.g. <code>/products/42</code>). Whatever it returns under <code>props</code> gets handed directly to <code>ProductPage</code> — by the time that component runs, <code>product</code> is already real data, so there's no loading state to write.<br><br><b>Answer to "ask the room"</b> In SSR, everything waits on the server — the visitor sees a blank tab until the server finishes running code, fetching data, AND building HTML, because nothing is sent down until all of that is done. In CSR, the empty shell + JS bundle usually arrive fast (they're static), so the visitor sees a spinner or skeleton almost immediately even if the data fetch is slow. SSR trades that early "something's happening" feedback for one clean round trip.</div>
+      </div>
+    </section>
+
+    <!-- 21 SSG process -->
+    <section class="slide" data-title="SSG process" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>SSG · process</div>
+        <h2 class="slide-title">Static Site Generation</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 1220 320">
+            <rect class="fc-lane-server" x="0" y="195" width="660" height="90"/>
+            <text class="fc-lane-label fc-lane-label-server" x="14" y="213">BUILD MACHINE</text>
+            <rect class="fc-lane-neutral" x="660" y="195" width="560" height="90"/>
+            <text class="fc-lane-label fc-lane-label-neutral" x="674" y="213">CDN</text>
+            <rect class="fc-lane-client" x="660" y="15" width="560" height="120"/>
+            <text class="fc-lane-label fc-lane-label-client" x="674" y="33">BROWSER</text>
+            <line x1="660" y1="5" x2="660" y2="310" stroke="var(--line-strong)" stroke-width="2" stroke-dasharray="6 5"/>
+
+            <rect class="fc-node-server" x="20" y="212" width="180" height="55" rx="10"/>
+            <text class="fc-label" x="110" y="235" text-anchor="middle" font-size="13">Dev runs</text>
+            <text class="fc-label" x="110" y="253" text-anchor="middle" font-size="12"><tspan font-family="IBM Plex Mono">next build</tspan></text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M200,240 L220,240"/>
+            <rect class="fc-node-server" x="230" y="212" width="220" height="55" rx="10"/>
+            <text class="fc-label" x="340" y="235" text-anchor="middle" font-size="13">Runs component code,</text>
+            <text class="fc-label" x="340" y="253" text-anchor="middle" font-size="13">builds HTML</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M450,240 L470,240"/>
+            <rect class="fc-node-server" x="480" y="212" width="160" height="55" rx="10"/>
+            <text class="fc-label" x="560" y="235" text-anchor="middle" font-size="13">Writes static</text>
+            <text class="fc-label" x="560" y="253" text-anchor="middle" font-size="13">file to disk</text>
+
+            <path class="fc-arrow-gap" marker-end="url(#arrowhead)" d="M640,240 L700,240"/>
+            <text class="fc-label-sm" x="670" y="282" text-anchor="middle">…time passes…</text>
+
+            <rect class="fc-node-client" x="700" y="35" width="210" height="55" rx="10"/>
+            <text class="fc-label" x="805" y="58" text-anchor="middle" font-size="13">Visitor requests</text>
+            <text class="fc-label" x="805" y="76" text-anchor="middle" font-size="13">the page</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M790,90 L790,212"/>
+            <rect class="fc-node-neutral" x="700" y="212" width="210" height="55" rx="10"/>
+            <text class="fc-label" x="805" y="235" text-anchor="middle" font-size="13">CDN serves the</text>
+            <text class="fc-label" x="805" y="253" text-anchor="middle" font-size="13">pre-built file</text>
+
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M800,212 L1000,90"/>
+            <rect class="fc-node-client" x="950" y="35" width="240" height="55" rx="10"/>
+            <text class="fc-label" x="1070" y="58" text-anchor="middle" font-size="13">Browser paints —</text>
+            <text class="fc-label" x="1070" y="76" text-anchor="middle" font-size="13">no server compute</text>
+
+            <text class="fc-label-sm" x="330" y="300" text-anchor="middle">BUILD TIME — once, before any visitor exists</text>
+            <text class="fc-label-sm" x="940" y="300" text-anchor="middle">RUNTIME — every time a visitor shows up</text>
+          </svg></div>
+        </div>
+        <div class="presenter-strip"><b>Presenter note</b> This is the live payoff of the build-time-vs-runtime primer — point back to that slide explicitly. The dashed divider is real: there's an actual gap in time (minutes, or months) between the build-machine steps and the first visitor. The CDN step is deliberately drawn in neutral gray, not teal — nothing is "running" at that point, a file is just being handed over, which is why SSG hosting is so cheap compared to SSR.</div>
+      </div>
+    </section>
+
+    <!-- 22 SSG example -->
+    <section class="slide" data-title="SSG example" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>SSG · example</div>
+        <h2 class="slide-title">What it looks like</h2>
+        <div class="slide-body">
+          <div class="file-tag"><span class="tag tag-neutral">Pages Router syntax</span> App Router does this differently — see Part 1's RSC section</div>
+          <div class="two-col">
+            <pre class="code" data-tag="server"><code>export async function getStaticProps({ params }) {
+  const post = await cms.getPost(params.slug);
+  return { props: { post } };
+}
+export async function getStaticPaths() {
+  const slugs = await cms.listSlugs();
+  return {
+    paths: slugs.map(slug =&gt; ({ params: { slug } })),
+    fallback: false,
+  };
+}</code></pre>
+            <div class="case-box"><span class="k">Real-world case</span>Docs sites, marketing blogs — built once, served from a CDN forever, until the next deploy.</div>
+          </div>
+          <div class="prompt-badge"><b>Ask the room</b>What's the actual tradeoff vs. SSR here — what do you give up to get that speed? Chat it.</div>
+        </div>
+        <div class="presenter-strip"><b>Code walkthrough</b> This looks almost identical to the SSR snippet two slides back — same shape, different TIMING, which is the whole point. <code>getStaticPaths</code> answers "which slugs exist?" ahead of time so Next.js knows every page to pre-build; <code>fallback: false</code> means any slug not in that list 404s rather than being built on demand. <code>getStaticProps</code> then runs once per slug, at build time, not per visitor.<br><br><b>Answer to "ask the room"</b> Freshness. SSG's HTML was correct as of whenever <code>next build</code> last ran — if the underlying data changes (a price, a typo fix, new content), visitors keep seeing the OLD version until the next build and deploy. SSR recomputes on every request, so it's always current, at the cost of per-request server compute and slower responses under load.</div>
+      </div>
+    </section>
+
+    <!-- 23 matrix 1 blank -->
+    <section class="slide" data-title="Matrix 1 — blank" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>Compare · round 1</div>
+        <h2 class="slide-title">CSR vs. SSR vs. SSG — you fill it in</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <table class="matrix">
+            <tr><th>Dimension</th><th>CSR</th><th>SSR</th><th>SSG</th></tr>
+            <tr><td class="dim">SEO</td><td class="blank">?</td><td class="blank">?</td><td class="blank">?</td></tr>
+            <tr><td class="dim">Initial load / TTI</td><td class="blank">?</td><td class="blank">?</td><td class="blank">?</td></tr>
+            <tr><td class="dim">Server resource cost</td><td class="blank">?</td><td class="blank">?</td><td class="blank">?</td></tr>
+            <tr><td class="dim">Client resource cost</td><td class="blank">?</td><td class="blank">?</td><td class="blank">?</td></tr>
+            <tr><td class="dim">Data freshness</td><td class="blank">?</td><td class="blank">?</td><td class="blank">?</td></tr>
+            <tr><td class="dim">Cache / CDN friendliness</td><td class="blank">?</td><td class="blank">?</td><td class="blank">?</td></tr>
+            <tr><td class="dim">Hosting complexity</td><td class="blank">?</td><td class="blank">?</td><td class="blank">?</td></tr>
+          </table>
+        </div>
+        <div class="presenter-strip"><b>Presenter note</b> Read each row, collect chat answers, then advance to the reveal.</div>
+      </div>
+    </section>
+
+    <!-- 24 matrix 2 filled -->
+    <section class="slide" data-title="Matrix 2 — filled" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Compare · round 1, revealed</div>
+        <h2 class="slide-title">CSR vs. SSR vs. SSG — the answers</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <table class="matrix">
+            <tr><th>Dimension</th><th>CSR</th><th>SSR</th><th>SSG</th></tr>
+            <tr><td class="dim">SEO</td><td>Poor — crawlers see an empty shell</td><td>Great — full HTML immediately</td><td>Great — full HTML immediately</td></tr>
+            <tr><td class="dim">Initial load / TTI</td><td>Slow first paint</td><td>Fast, but server works every time</td><td>Fastest — pre-built, served from CDN</td></tr>
+            <tr><td class="dim">Server resource cost</td><td>Low</td><td>High — compute per request</td><td>Low — compute only at build</td></tr>
+            <tr><td class="dim">Client resource cost</td><td>High — browser does it all</td><td>Medium — still hydrates</td><td>Medium — still hydrates</td></tr>
+            <tr><td class="dim">Data freshness</td><td>Always fresh</td><td>Always fresh</td><td>Stale until next build</td></tr>
+            <tr><td class="dim">Cache / CDN friendliness</td><td>Great</td><td>Poor — dynamic per request</td><td>Great — fully static</td></tr>
+            <tr><td class="dim">Hosting complexity</td><td>Simple — static host</td><td>Complex — needs a server runtime</td><td>Simple — static host</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 25 brainstorm -->
+    <section class="slide hero" data-title="Brainstorm" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Think · chat · share</div>
+        <h2 class="slide-title">Every strategy on that board loses on at least one dimension.</h2>
+        <div class="prompt-badge" style="font-size:clamp(18px,2vw,23px);"><b>2 minutes</b>Could you keep each one's strengths without inheriting all of its weaknesses? What would that need to look like, mechanically? Chat your ideas.</div>
+        <p class="slide-sub">No hints yet — whatever you come up with, we'll compare it to what the industry actually built next.</p>
+        <div class="presenter-strip"><b>Presenter note</b> Read out 2–3 chat ideas. Don't confirm or deny — just bridge with "let's see what shipped."</div>
+      </div>
+    </section>
+
+    <!-- 26 RSC process -->
+    <section class="slide" data-title="RSC process" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>RSC · process</div>
+        <h2 class="slide-title">React Server Components</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 980 300">
+            <rect class="fc-node-ghost" x="20" y="30" width="330" height="230" rx="14"/>
+            <text class="fc-label-sm" x="185" y="55" text-anchor="middle">OLD MODEL</text>
+            <rect class="fc-node-neutral" x="90" y="90" width="190" height="130" rx="10"/>
+            <text class="fc-label" x="185" y="160" text-anchor="middle">pick ONE strategy</text>
+            <text class="fc-label" x="185" y="182" text-anchor="middle">for the WHOLE page</text>
+
+            <rect class="fc-node-ghost" x="420" y="30" width="540" height="230" rx="14"/>
+            <text class="fc-label-sm" x="690" y="55" text-anchor="middle">APP ROUTER / RSC</text>
+            <rect class="fc-node-server" x="650" y="75" width="150" height="55" rx="8"/>
+            <text class="fc-label" x="725" y="108" text-anchor="middle" font-size="13">Page (server)</text>
+            <path class="fc-arrow" d="M700,130 L600,170" marker-end="url(#arrowhead)"/>
+            <path class="fc-arrow" d="M750,130 L850,170" marker-end="url(#arrowhead)"/>
+            <rect class="fc-node-server" x="500" y="170" width="150" height="55" rx="8"/>
+            <text class="fc-label" x="575" y="203" text-anchor="middle" font-size="13">Header (server)</text>
+            <rect class="fc-node-client" x="770" y="170" width="160" height="55" rx="8"/>
+            <text class="fc-label" x="850" y="203" text-anchor="middle" font-size="13">Form (client)</text>
+          </svg></div>
+          <p class="slide-sub" style="text-align:center;">The decision moves from <em>per page</em> to <em>per component</em>, inside the same tree.</p>
+        </div>
+        <div class="presenter-strip"><b>Presenter note</b> The left box has no internal color on purpose — in the old model you couldn't mix strategies within one page, so there was nothing to color-differentiate. The right box's dashed OUTER boundary represents "still one page"; the colors INSIDE it are what's new. If someone asks "doesn't SSR also run on the server first?" — yes, the difference isn't server-vs-client in isolation, it's that the choice now happens per component instead of per page.</div>
+      </div>
+    </section>
+
+    <!-- 27 RSC example ask -->
+    <section class="slide" data-title="RSC example — ask" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>RSC · example</div>
+        <h2 class="slide-title">Server or Client — for each node?</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 700 300">
+            <rect class="fc-node-neutral" x="265" y="20" width="170" height="60" rx="8"/>
+            <text class="fc-label" x="350" y="55" text-anchor="middle" font-size="14">DashboardPage</text>
+            <path class="fc-arrow" d="M330,80 L220,150" marker-end="url(#arrowhead)"/>
+            <path class="fc-arrow" d="M370,80 L480,150" marker-end="url(#arrowhead)"/>
+            <rect class="fc-node-neutral" x="130" y="150" width="170" height="60" rx="8"/>
+            <text class="fc-label" x="215" y="178" text-anchor="middle" font-size="14">Header</text>
+            <text class="fc-q" x="215" y="200" text-anchor="middle">?</text>
+            <rect class="fc-node-neutral" x="400" y="150" width="170" height="60" rx="8"/>
+            <text class="fc-label" x="485" y="178" text-anchor="middle" font-size="14">Card</text>
+            <text class="fc-q" x="485" y="200" text-anchor="middle">?</text>
+            <path class="fc-arrow" d="M215,210 L215,250" marker-end="url(#arrowhead)"/>
+            <rect class="fc-node-neutral" x="130" y="250" width="170" height="50" rx="8"/>
+            <text class="fc-label" x="215" y="272" text-anchor="middle" font-size="13">ThemeToggle</text>
+            <text class="fc-q" x="215" y="290" text-anchor="middle" font-size="16">?</text>
+          </svg></div>
+          <p class="slide-sub" style="text-align:center;">Hint: a Server Component can render a Client child — never the other way around. Chat your guesses for all three.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 28 RSC example reveal -->
+    <section class="slide" data-title="RSC example — answer" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Answer</div>
+        <h2 class="punch-title">Header + Card: Server. ThemeToggle: Client.</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 700 300">
+            <rect class="fc-node-neutral" x="265" y="20" width="170" height="60" rx="8"/>
+            <text class="fc-label" x="350" y="55" text-anchor="middle" font-size="14">DashboardPage</text>
+            <path class="fc-arrow" d="M330,80 L220,150" marker-end="url(#arrowhead)"/>
+            <path class="fc-arrow" d="M370,80 L480,150" marker-end="url(#arrowhead)"/>
+            <rect class="fc-node-server" x="130" y="150" width="170" height="60" rx="8"/>
+            <text class="fc-label" x="215" y="178" text-anchor="middle" font-size="14">Header</text>
+            <text class="fc-label-sm" x="215" y="198" text-anchor="middle">Server</text>
+            <rect class="fc-node-server" x="400" y="150" width="170" height="60" rx="8"/>
+            <text class="fc-label" x="485" y="178" text-anchor="middle" font-size="14">Card</text>
+            <text class="fc-label-sm" x="485" y="198" text-anchor="middle">Server</text>
+            <path class="fc-arrow" d="M215,210 L215,250" marker-end="url(#arrowhead)"/>
+            <rect class="fc-node-client" x="130" y="250" width="170" height="50" rx="8"/>
+            <text class="fc-label" x="215" y="272" text-anchor="middle" font-size="13">ThemeToggle</text>
+            <text class="fc-label-sm" x="215" y="290" text-anchor="middle">Client</text>
+          </svg></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 29 matrix 3 +RSC -->
+    <section class="slide" data-title="Matrix 3 — with RSC" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>Compare · round 2</div>
+        <h2 class="slide-title">Now add RSC to the board</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <table class="matrix">
+            <tr><th>Dimension</th><th>CSR</th><th>SSR</th><th>SSG</th><th>RSC</th></tr>
+            <tr><td class="dim">SEO</td><td>Poor</td><td>Great</td><td>Great</td><td class="rsc">Depends per component</td></tr>
+            <tr><td class="dim">Initial load / TTI</td><td>Slow</td><td>Fast, costly</td><td>Fastest</td><td class="rsc">Great — only interactive parts ship JS</td></tr>
+            <tr><td class="dim">Server resource cost</td><td>Low</td><td>High</td><td>Low</td><td class="rsc">Depends on hosting mode</td></tr>
+            <tr><td class="dim">Client resource cost</td><td>High</td><td>Medium</td><td>Medium</td><td class="rsc">Low–medium, scoped to interactive subtrees</td></tr>
+            <tr><td class="dim">Data freshness</td><td>Fresh</td><td>Fresh</td><td>Stale till build</td><td class="rsc">Depends per component</td></tr>
+            <tr><td class="dim">Cache / CDN friendliness</td><td>Great</td><td>Poor</td><td>Great</td><td class="rsc">Good for server parts, client fetches bypass cache</td></tr>
+            <tr><td class="dim">Hosting complexity</td><td>Simple</td><td>Complex</td><td>Simple</td><td class="rsc">Depends — can be as simple as SSG</td></tr>
+          </table>
+          <div class="callout insight"><span class="k">Key insight</span>"Depends per component" isn't a cop-out — it's the whole point. RSC trades one fixed answer for a deliberate, granular choice.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 30 bridge -->
+    <section class="slide hero" data-title="Part 2 framing" style="--accent:var(--client)">
+      <div class="big-num">02</div>
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>Part Two</div>
+        <h1 class="hero-title">The @old-st/ui<br/>Pattern</h1>
+        <p class="slide-sub">The exact same server/client question, asked again — this time by a shared component library instead of a page.</p>
+      </div>
+    </section>
+
+    <!-- what is the app router -->
+    <section class="slide" data-title="What is the App Router?" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>Part Two · setting the stage</div>
+        <h2 class="slide-title">What exactly is "the App Router"?</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="case-box"><span class="k">In one line</span>It's Next.js's routing system, built around the <code>app/</code> directory — the concrete, shippable implementation of the Server/Client tree you just saw in Part 1.</div>
+          <table class="matrix">
+            <tr><th></th><th>Pages Router (old)</th><th>App Router (new)</th></tr>
+            <tr><td class="dim">Directory</td><td><code>pages/</code></td><td><code>app/</code></td></tr>
+            <tr><td class="dim">Routing unit</td><td>One file = one page</td><td>A nested tree: <code>page.tsx</code>, <code>layout.tsx</code>, <code>loading.tsx</code>, <code>error.tsx</code></td></tr>
+            <tr><td class="dim">Rendering decision</td><td>The whole page picks one strategy</td><td>Each component picks Server or Client</td></tr>
+          </table>
+          <div class="callout insight"><span class="k">Callback</span>That "App Router / RSC" tree from Part 1 — teal and amber nodes inside one dashed page boundary? That tree <em>is</em> the App Router. <code>app/</code> is just Next.js's name for "a directory where this per-component choice is real, not theoretical."</div>
+          <p class="slide-sub">Everything in Part 2 — the primitives, the pages, every <code>'use client'</code> — lives inside this <code>app/</code> structure in the real codebase.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 31 two kinds — ask -->
+    <section class="slide" data-title="Two groups — ask" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.1</div>
+        <h2 class="slide-title">Two groups of primitives — which needs <code style="font-size:.75em;">'use client'</code>?</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="two-col">
+            <div class="case-box"><span class="k">Group A</span><code>button</code>, <code>card</code>, <code>badge</code>, <code>table</code></div>
+            <div class="case-box"><span class="k">Group B</span><code>modal</code>, <code>dropdown-menu</code>, <code>tooltip</code>, <code>tabs</code></div>
+          </div>
+          <p class="slide-sub">Which group needs the directive, which doesn't — and why? Chat your answer.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 32 two kinds — reveal -->
+    <section class="slide" data-title="Two groups — answer" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Answer</div>
+        <h2 class="slide-title">Two kinds of primitive</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <table class="matrix">
+            <tr><th>Kind</th><th>Examples</th><th>Directive</th><th>Why</th></tr>
+            <tr><td class="dim">Static display (Group A)</td><td><code>button</code>, <code>card</code>, <code>badge</code>, <code>table</code></td><td>none</td><td>Pure class-name wrappers — safe in a Server Component</td></tr>
+            <tr><td class="dim">Radix-backed interactive (Group B)</td><td><code>modal</code>, <code>dropdown-menu</code>, <code>tooltip</code>, <code>tabs</code></td><td><code>'use client'</code> mandatory</td><td>Manages focus/keyboard with refs + state</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 33 static example -->
+    <section class="slide" data-title="Static primitive example" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>2.1 · example</div>
+        <h2 class="slide-title">No directive needed</h2>
+        <div class="slide-body">
+          <div class="file-tag"><span class="tag tag-server">Server-safe</span> button.tsx</div>
+          <pre class="code"><code>const buttonVariants = cva(
+  'inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium …',
+  {
+    variants: {
+      variant: { default: '…', brand: '…', destructive: '…', outline: '…', ghost: '…' },
+      size: { default: 'h-9 px-4 py-2', sm: '…', lg: '…', icon: '…' },
+    },
+  },
+);</code></pre>
+        </div>
+        <div class="presenter-strip"><b>Code walkthrough</b> <code>cva</code> ("class-variance-authority") isn't React-specific — it's a plain function that takes a BASE set of classes (always applied) plus a <code>variants</code> map, and hands back a function. Calling <code>buttonVariants({ variant: 'brand', size: 'sm' })</code> returns the final className string for that combination — pure string logic, nothing else. No hooks, no DOM, no browser API in sight, which is exactly why this file needs no <code>'use client'</code> — it would produce the identical output whether Node or a browser evaluated it.</div>
+      </div>
+    </section>
+
+    <!-- 33 interactive example -->
+    <section class="slide" data-title="Interactive primitive example" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.1 · example</div>
+        <h2 class="slide-title">Radix needs the browser</h2>
+        <div class="slide-body">
+          <div class="file-tag"><span class="tag tag-client">Client component</span> modal.tsx</div>
+          <pre class="code" data-tag="client"><code>'use client';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+
+const Modal = DialogPrimitive.Root;
+
+function ModalOverlay({ className, ref, ...props }) {
+  return (
+    &lt;DialogPrimitive.Overlay
+      ref={ref}
+      className={cn('fixed inset-0 z-40 bg-black/20 …', className)}
+      {...props}
+    /&gt;
+  );
+}</code></pre>
+        </div>
+        <div class="presenter-strip"><b>What is Radix?</b> An unstyled, accessible component library (Dialog, Dropdown, Tooltip, Tabs…) — it handles focus-trapping inside an open dialog, returning focus on close, Escape/outside-click, ARIA attributes, and portaling to the end of <code>&lt;body&gt;</code>. It ships zero CSS on purpose.<br><br><b>Code walkthrough</b> <code>Modal</code> is <code>DialogPrimitive.Root</code> re-exported with NO wrapping at all — it's pure state/behavior, nothing to style. <code>ModalOverlay</code> exists only to add Tailwind classes via <code>cn(...)</code> on top of Radix's unstyled <code>Overlay</code> part. All of Radix's focus-trap/portal/keyboard logic needs <code>useRef</code>/<code>useState</code> internally — that's the hard, mechanical reason this file requires <code>'use client'</code>, not a style preference.</div>
+      </div>
+    </section>
+
+    <!-- 34 bundle cost tree -->
+    <section class="slide" data-title="Bundle cost insight" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>Key insight</div>
+        <h2 class="slide-title">You pay for client JS per primitive, not per page</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 820 260">
+            <rect class="fc-node-neutral" x="330" y="20" width="160" height="55" rx="8"/>
+            <text class="fc-label" x="410" y="53" text-anchor="middle" font-size="14">Page</text>
+            <path class="fc-arrow" d="M370,75 L150,150" marker-end="url(#arrowhead)"/>
+            <path class="fc-arrow" d="M400,75 L330,150" marker-end="url(#arrowhead)"/>
+            <path class="fc-arrow" d="M420,75 L510,150" marker-end="url(#arrowhead)"/>
+            <path class="fc-arrow" d="M450,75 L690,150" marker-end="url(#arrowhead)"/>
+            <rect class="fc-node-neutral" x="60" y="150" width="140" height="55" rx="8"/>
+            <text class="fc-label" x="130" y="180" text-anchor="middle" font-size="13">Card</text>
+            <rect class="fc-node-neutral" x="240" y="150" width="140" height="55" rx="8"/>
+            <text class="fc-label" x="310" y="180" text-anchor="middle" font-size="13">Badge</text>
+            <rect class="fc-node-neutral" x="420" y="150" width="140" height="55" rx="8"/>
+            <text class="fc-label" x="490" y="180" text-anchor="middle" font-size="13">Table</text>
+            <rect class="fc-boundary" x="595" y="135" width="190" height="90" rx="12"/>
+            <rect class="fc-node-client" x="610" y="150" width="140" height="55" rx="8"/>
+            <text class="fc-label" x="680" y="180" text-anchor="middle" font-size="13">Modal</text>
+            <text class="fc-label-sm" x="690" y="240" text-anchor="middle">client bundle starts here →</text>
+            <text class="fc-label-sm" x="230" y="240" text-anchor="middle">0 extra client JS for these three</text>
+          </svg></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 35 composition flow -->
+    <section class="slide" data-title="Composition pattern" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>2.2</div>
+        <h2 class="slide-title">Composition: the thin-orchestrator chain</h2>
+        <div class="slide-body">
+          <div class="fc-wrap"><svg viewBox="0 0 980 170">
+            <rect class="fc-node-client" x="10" y="45" width="190" height="70" rx="10"/>
+            <text class="fc-label" x="105" y="75" text-anchor="middle" font-size="13">page.tsx</text>
+            <text class="fc-label-sm" x="105" y="95" text-anchor="middle">UI state + composition</text>
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M205,80 L265,80"/>
+            <rect class="fc-node-client" x="270" y="45" width="190" height="70" rx="10"/>
+            <text class="fc-label" x="365" y="75" text-anchor="middle" font-size="13">Composite</text>
+            <text class="fc-label-sm" x="365" y="95" text-anchor="middle">presentation + mutations</text>
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M465,80 L525,80"/>
+            <rect class="fc-node-client" x="530" y="45" width="170" height="70" rx="10"/>
+            <text class="fc-label" x="615" y="75" text-anchor="middle" font-size="13">Hook</text>
+            <text class="fc-label-sm" x="615" y="95" text-anchor="middle">React Query</text>
+            <path class="fc-arrow" marker-end="url(#arrowhead)" d="M705,80 L765,80"/>
+            <rect class="fc-node-client" x="770" y="45" width="190" height="70" rx="10"/>
+            <text class="fc-label" x="865" y="75" text-anchor="middle" font-size="13">API client</text>
+            <text class="fc-label-sm" x="865" y="95" text-anchor="middle">typed fetch</text>
+          </svg></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- composition analogy -->
+    <section class="slide" data-title="Analogy: ordering delivery" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>2.2 · in plain terms</div>
+        <h2 class="slide-title">Think of it like ordering delivery</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <table class="matrix">
+            <tr><th>Restaurant</th><th>Code layer</th><th>Role</th></tr>
+            <tr><td class="dim">Host / manager</td><td>Page</td><td>Decides what you're seeing right now, coordinates the visit</td></tr>
+            <tr><td class="dim">Your waiter</td><td>Composite</td><td>Handles one specific request directly — refills, the check</td></tr>
+            <tr><td class="dim">The order ticket format</td><td>Hook</td><td>A consistent way to write down "what's needed"</td></tr>
+            <tr><td class="dim">The delivery runner</td><td>API client</td><td>Physically carries the request and brings the result back</td></tr>
+            <tr><td class="dim">The kitchen</td><td>Backend</td><td>Does the real work — cooks the food</td></tr>
+          </table>
+          <p class="slide-sub">Keep this mapping in mind — we'll walk through each layer one at a time next.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- composition layer 1: page -->
+    <section class="slide" data-title="Layer 1 — Page" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · layer 1 of 4</div>
+        <h2 class="slide-title">The Page — like the host</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="case-box"><span class="k">In the restaurant</span>The host seats you and decides what you see next — but doesn't personally take your order or cook anything.</div>
+          <div class="case-box"><span class="k">In the code</span>Holds route-level UI state (which filter/tab is active) and composes everything else together. It doesn't own data mutations itself.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- composition layer 2: composite -->
+    <section class="slide" data-title="Layer 2 — Composite" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · layer 2 of 4</div>
+        <h2 class="slide-title">The Composite — like your waiter</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="case-box"><span class="k">In the restaurant</span>Your waiter handles one specific interaction directly — taking an order, bringing the check — without you talking straight to the kitchen.</div>
+          <div class="case-box"><span class="k">In the code</span>Receives data via props from the page, but owns and calls its own mutation hooks directly — it doesn't bubble the action back up.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- composition layer 3: hook -->
+    <section class="slide" data-title="Layer 3 — Hook" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · layer 3 of 4</div>
+        <h2 class="slide-title">The Hook — like the order ticket</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="case-box"><span class="k">In the restaurant</span>A standard ticket format the kitchen expects — any waiter can fill one out and the kitchen knows exactly how to read it.</div>
+          <div class="case-box"><span class="k">In the code</span>Wraps the request in React Query (<code>useQuery</code> / <code>useMutation</code>) — consistent caching, loading, and retry behavior everywhere it's used.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- composition layer 4: api client -->
+    <section class="slide" data-title="Layer 4 — API client" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · layer 4 of 4</div>
+        <h2 class="slide-title">The API client — like the delivery runner</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="case-box"><span class="k">In the restaurant</span>Physically carries the ticket to the kitchen and brings the finished dish back. Doesn't decide what's ordered — just transports it.</div>
+          <div class="case-box"><span class="k">In the code</span>A typed fetch wrapper that makes the actual HTTP call — e.g. <code>userApiClient.listByStatus(...)</code> — talking to the backend (the kitchen).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- layer 1 in action -->
+    <section class="slide" data-title="Layer 1 in action — Page" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · in action · 1 of 4</div>
+        <h2 class="slide-title">The Page, in action</h2>
+        <div class="slide-body">
+          <div class="two-col">
+            <div class="fc-wrap"><svg viewBox="0 0 520 320">
+              <rect x="10" y="10" width="500" height="280" rx="8" class="fc-node-neutral"/>
+              <rect x="10" y="10" width="500" height="44" fill="var(--surface-2)"/>
+              <text class="fc-label" x="28" y="37" font-size="14" font-weight="700">Users</text>
+              <rect x="400" y="20" width="90" height="24" rx="6" class="fc-node-neutral"/>
+              <text class="fc-label-sm" x="445" y="36" text-anchor="middle">ACTIVE ▾</text>
+              <line x1="10" y1="54" x2="510" y2="54" stroke="var(--line)" stroke-width="1"/>
+              <text class="fc-label" x="28" y="96" font-size="13">Jordan Ellis</text>
+              <rect x="220" y="82" width="70" height="22" rx="11" fill="var(--server-soft)"/>
+              <text class="fc-label-sm" x="255" y="97" text-anchor="middle" fill="var(--server)">Active</text>
+              <rect x="410" y="80" width="80" height="26" rx="6" class="fc-node-client"/>
+              <text class="fc-label" x="450" y="97" text-anchor="middle" font-size="12">Activate</text>
+              <text class="fc-label" x="28" y="154" font-size="13">Maya Chen</text>
+              <rect x="220" y="140" width="70" height="22" rx="11" fill="var(--quiz-soft)"/>
+              <text class="fc-label-sm" x="255" y="155" text-anchor="middle" fill="var(--quiz)">Pending</text>
+              <rect x="410" y="138" width="80" height="26" rx="6" class="fc-node-client"/>
+              <text class="fc-label" x="450" y="155" text-anchor="middle" font-size="12">Activate</text>
+              <text class="fc-label" x="28" y="212" font-size="13">Theo Brooks</text>
+              <rect x="220" y="198" width="70" height="22" rx="11" fill="var(--server-soft)"/>
+              <text class="fc-label-sm" x="255" y="213" text-anchor="middle" fill="var(--server)">Active</text>
+              <rect x="410" y="196" width="80" height="26" rx="6" class="fc-node-client"/>
+              <text class="fc-label" x="450" y="213" text-anchor="middle" font-size="12">Activate</text>
+              <rect class="fc-boundary" x="4" y="4" width="512" height="292" rx="12"/>
+              <text class="fc-label-sm" x="260" y="312" text-anchor="middle">the whole page</text>
+            </svg></div>
+            <div>
+              <p class="slide-sub" style="margin-bottom:10px;">Example process:</p>
+              <ol class="steps">
+                <li>Visitor opens <code>/users</code></li>
+                <li><code>UsersPage</code> mounts, <code>status</code> initializes to <code>'ACTIVE'</code></li>
+                <li>Calls <code>useUsersByStatus(status)</code></li>
+                <li>Renders <code>&lt;UsersTable users={data}/&gt;</code> once data resolves</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- layer 2 in action -->
+    <section class="slide" data-title="Layer 2 in action — Composite" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · in action · 2 of 4</div>
+        <h2 class="slide-title">The Composite, in action</h2>
+        <div class="slide-body">
+          <div class="two-col">
+            <div class="fc-wrap"><svg viewBox="0 0 520 320">
+              <rect x="10" y="10" width="500" height="280" rx="8" class="fc-node-neutral"/>
+              <rect x="10" y="10" width="500" height="44" fill="var(--surface-2)"/>
+              <text class="fc-label" x="28" y="37" font-size="14" font-weight="700">Users</text>
+              <rect x="400" y="20" width="90" height="24" rx="6" class="fc-node-neutral"/>
+              <text class="fc-label-sm" x="445" y="36" text-anchor="middle">ACTIVE ▾</text>
+              <line x1="10" y1="54" x2="510" y2="54" stroke="var(--line)" stroke-width="1"/>
+              <text class="fc-label" x="28" y="96" font-size="13">Jordan Ellis</text>
+              <rect x="220" y="82" width="70" height="22" rx="11" fill="var(--server-soft)"/>
+              <text class="fc-label-sm" x="255" y="97" text-anchor="middle" fill="var(--server)">Active</text>
+              <rect x="410" y="80" width="80" height="26" rx="6" class="fc-node-client"/>
+              <text class="fc-label" x="450" y="97" text-anchor="middle" font-size="12">Activate</text>
+              <text class="fc-label" x="28" y="154" font-size="13">Maya Chen</text>
+              <rect x="220" y="140" width="70" height="22" rx="11" fill="var(--quiz-soft)"/>
+              <text class="fc-label-sm" x="255" y="155" text-anchor="middle" fill="var(--quiz)">Pending</text>
+              <rect x="410" y="138" width="80" height="26" rx="6" class="fc-node-client"/>
+              <text class="fc-label" x="450" y="155" text-anchor="middle" font-size="12">Activate</text>
+              <text class="fc-label" x="28" y="212" font-size="13">Theo Brooks</text>
+              <rect x="220" y="198" width="70" height="22" rx="11" fill="var(--server-soft)"/>
+              <text class="fc-label-sm" x="255" y="213" text-anchor="middle" fill="var(--server)">Active</text>
+              <rect x="410" y="196" width="80" height="26" rx="6" class="fc-node-client"/>
+              <text class="fc-label" x="450" y="213" text-anchor="middle" font-size="12">Activate</text>
+              <rect class="fc-boundary" x="14" y="72" width="486" height="44" rx="8"/>
+              <text class="fc-label-sm" x="260" y="312" text-anchor="middle">one row's actions</text>
+            </svg></div>
+            <div>
+              <p class="slide-sub" style="margin-bottom:10px;">Example process:</p>
+              <ol class="steps">
+                <li><code>UsersTable</code> renders one <code>&lt;UserActions user={row}/&gt;</code> per row</li>
+                <li>You click "Activate" on Jordan Ellis's row</li>
+                <li><code>UserActions</code> calls its OWN hook: <code>useActivateUser().mutate(user.userId)</code></li>
+                <li>The page never even knows this happened — no prop, no callback, no page-level state change</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- layer 3 in action -->
+    <section class="slide" data-title="Layer 3 in action — Hook" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · in action · 3 of 4</div>
+        <h2 class="slide-title">The Hook, in action</h2>
+        <div class="slide-body">
+          <div class="two-col">
+            <div class="fc-wrap"><svg viewBox="0 0 520 320">
+              <rect x="10" y="10" width="500" height="280" rx="8" class="fc-node-neutral"/>
+              <rect x="10" y="10" width="500" height="44" fill="var(--surface-2)"/>
+              <text class="fc-label" x="28" y="37" font-size="14" font-weight="700">Users</text>
+              <rect x="400" y="20" width="90" height="24" rx="6" class="fc-node-neutral"/>
+              <text class="fc-label-sm" x="445" y="36" text-anchor="middle">ACTIVE ▾</text>
+              <line x1="10" y1="54" x2="510" y2="54" stroke="var(--line)" stroke-width="1"/>
+              <text class="fc-label" x="28" y="96" font-size="13" opacity=".55">Jordan Ellis</text>
+              <rect x="220" y="82" width="70" height="22" rx="11" fill="var(--server-soft)" opacity=".55"/>
+              <text class="fc-label-sm" x="255" y="97" text-anchor="middle" fill="var(--server)" opacity=".55">Active</text>
+              <rect x="410" y="80" width="80" height="26" rx="6" class="fc-node-client"/>
+              <text class="fc-label" x="450" y="97" text-anchor="middle" font-size="12">Activate</text>
+              <text class="fc-label" x="28" y="154" font-size="13" opacity=".55">Maya Chen</text>
+              <rect x="220" y="140" width="70" height="22" rx="11" fill="var(--quiz-soft)" opacity=".55"/>
+              <text class="fc-label-sm" x="255" y="155" text-anchor="middle" fill="var(--quiz)" opacity=".55">Pending</text>
+              <rect x="410" y="138" width="80" height="26" rx="6" class="fc-node-client" opacity=".55"/>
+              <text class="fc-label" x="450" y="155" text-anchor="middle" font-size="12" opacity=".55">Activate</text>
+              <text class="fc-label" x="28" y="212" font-size="13" opacity=".55">Theo Brooks</text>
+              <rect x="220" y="198" width="70" height="22" rx="11" fill="var(--server-soft)" opacity=".55"/>
+              <text class="fc-label-sm" x="255" y="213" text-anchor="middle" fill="var(--server)" opacity=".55">Active</text>
+              <rect x="410" y="196" width="80" height="26" rx="6" class="fc-node-client" opacity=".55"/>
+              <text class="fc-label" x="450" y="213" text-anchor="middle" font-size="12" opacity=".55">Activate</text>
+              <rect class="fc-boundary" x="396" y="16" width="98" height="32" rx="8"/>
+              <rect class="fc-boundary" x="406" y="76" width="88" height="34" rx="8"/>
+              <text class="fc-label-sm" x="260" y="312" text-anchor="middle">fires here — but has no shape of its own</text>
+            </svg></div>
+            <div>
+              <p class="slide-sub" style="margin-bottom:10px;">Example process:</p>
+              <ol class="steps">
+                <li><code>useActivateUser()</code> is called inside <code>UserActions</code></li>
+                <li>Internally wraps React Query's <code>useMutation</code> — tracks loading/error/success</li>
+                <li>On <code>.mutate(...)</code>, calls the API client and manages cache invalidation</li>
+                <li>The same hook could be called from a totally different component tomorrow and behave identically</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- layer 4 in action -->
+    <section class="slide" data-title="Layer 4 in action — API client" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · in action · 4 of 4</div>
+        <h2 class="slide-title">The API client, in action</h2>
+        <div class="slide-body">
+          <div class="two-col">
+            <div class="fc-wrap"><svg viewBox="0 0 700 320">
+              <rect x="10" y="10" width="500" height="280" rx="8" class="fc-node-neutral" opacity=".55"/>
+              <rect x="10" y="10" width="500" height="44" fill="var(--surface-2)" opacity=".55"/>
+              <text class="fc-label" x="28" y="37" font-size="14" font-weight="700" opacity=".55">Users</text>
+              <rect x="400" y="20" width="90" height="24" rx="6" class="fc-node-neutral" opacity=".55"/>
+              <text class="fc-label-sm" x="445" y="36" text-anchor="middle" opacity=".55">ACTIVE ▾</text>
+              <line x1="10" y1="54" x2="510" y2="54" stroke="var(--line)" stroke-width="1" opacity=".55"/>
+              <text class="fc-label" x="28" y="96" font-size="13" opacity=".55">Jordan Ellis</text>
+              <rect x="220" y="82" width="70" height="22" rx="11" fill="var(--server-soft)" opacity=".55"/>
+              <text class="fc-label-sm" x="255" y="97" text-anchor="middle" fill="var(--server)" opacity=".55">Active</text>
+              <rect x="410" y="80" width="80" height="26" rx="6" class="fc-node-client" opacity=".7"/>
+              <text class="fc-label" x="450" y="97" text-anchor="middle" font-size="12">Activate</text>
+              <rect x="580" y="110" width="110" height="60" rx="10" class="fc-node-server"/>
+              <text class="fc-label" x="635" y="135" text-anchor="middle" font-size="12">Backend</text>
+              <text class="fc-label" x="635" y="153" text-anchor="middle" font-size="12">API</text>
+              <path class="fc-arrow" marker-end="url(#arrowhead)" d="M495,93 L575,130"/>
+              <text class="fc-label-sm" x="355" y="312" text-anchor="middle">the actual network trip — never drawn on the page itself</text>
+            </svg></div>
+            <div>
+              <p class="slide-sub" style="margin-bottom:10px;">Example process:</p>
+              <ol class="steps">
+                <li>The hook's mutation function calls <code>userApiClient.activate(userId)</code></li>
+                <li>That function does the literal <code>fetch(...)</code> with <code>method: 'POST'</code></li>
+                <li>The browser sends a real HTTP request across the network to the backend</li>
+                <li>The response comes back, the hook updates its cache, React re-renders</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 36 composition example ask -->
+    <section class="slide" data-title="Composition example — ask" style="--accent:var(--client)">
+      <div class="slide-inner">
+        <div class="kicker k-client"><span class="dot"></span>2.2 · example</div>
+        <h2 class="slide-title">Which layer owns the mutation?</h2>
+        <div class="slide-body">
+          <pre class="code" data-tag="client"><code>export default function UsersPage() {
+  const [status, setStatus] = useState('ACTIVE');
+  const { data } = useUsersByStatus({ userStatus: status });
+  return &lt;UsersTable users={data?.data}/&gt;;
+}
+
+export function UserActions({ user }) {
+  const activateUser = useActivateUser();
+  return &lt;Button onClick={() =&gt; activateUser.mutate(user.userId)}&gt;Activate&lt;/Button&gt;;
+}</code></pre>
+          <div class="opt-list">
+            <div class="opt-pill">Page</div>
+            <div class="opt-pill">Composite (UserActions)</div>
+            <div class="opt-pill">Hook</div>
+            <div class="opt-pill">API client</div>
+          </div>
+          <p class="slide-sub">Chat your pick.</p>
+        </div>
+        <div class="presenter-strip"><b>Code walkthrough</b> <code>UsersPage</code> holds exactly one piece of state (<code>status</code>) and calls ONE hook — <code>useUsersByStatus</code> — to fetch a LIST. It never touches <code>user.userId</code> and never calls a mutation; it just hands the fetched list down to <code>&lt;UsersTable&gt;</code> (not shown — it renders one <code>&lt;UserActions user={row}/&gt;</code> per row). <code>UserActions</code> receives a single <code>user</code> as a read-only prop, but owns an entirely separate hook, <code>useActivateUser()</code> — a MUTATION — and wires its own <code>onClick</code> directly. This snippet is the literal code proof of "page reads, composite writes."</div>
+      </div>
+    </section>
+
+    <!-- 37 composition example reveal -->
+    <section class="slide" data-title="Composition example — answer" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Answer</div>
+        <h2 class="punch-title">The composite — <code style="font-size:.75em;">UserActions</code>.</h2>
+        <div class="callout answer"><span class="k">Why</span>It reads data via props from its parent, but owns and calls its own mutation hooks directly — it doesn't bubble callbacks all the way up to the page.</div>
+      </div>
+    </section>
+
+    <!-- composition whiteboard -->
+    <section class="slide" data-title="Whiteboard: why a thin orchestrator?" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Whiteboard</div>
+        <h2 class="slide-title">Why use a thin orchestrator?</h2>
+        <div class="whiteboard" contenteditable="true" spellcheck="false" data-wb-key="thin-orchestrator" data-placeholder="Type here as the room calls out answers…"></div>
+      </div>
+    </section>
+
+    <!-- why a thin orchestrator — reveal -->
+    <section class="slide" data-title="Why a thin orchestrator — the list" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Compare against what you wrote</div>
+        <h2 class="slide-title">Why use a thin orchestrator?</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <ul class="bullets">
+            <li><b>Testability</b> — a page with no business logic is trivial to test; the real logic lives in small, focused composites and hooks you can test in isolation.</li>
+            <li><b>Reuse</b> — the same composite (e.g. <code>UserActions</code>) drops into a table row, a detail page, or a modal, because it owns its own data needs instead of depending on a specific parent to feed it.</li>
+            <li><b>Change isolation</b> — if the mutation API changes, you edit the composite or hook, not every page that happens to render it.</li>
+            <li><b>Bundle discipline</b> — keeping pages thin makes the client/server boundary obvious, instead of tempting you to cram unrelated interactivity into the one file that's already <code>'use client'</code>.</li>
+            <li><b>Faster onboarding</b> — a new engineer can read any page's ~10 lines and understand the whole screen's shape without reading every component's internals.</li>
+          </ul>
+          <div class="callout career"><span class="k">Not a new idea</span>Same shape as "container/presentational" or "smart/dumb components" from years of React practice — this isn't an arbitrary house rule, it's a durable, widely-agreed-on pattern applied consistently.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 38 career -->
+    <section class="slide hero" data-title="Why this matters" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-both"><span class="dot"></span>2.3</div>
+        <h2 class="slide-title">Why this is worth knowing before your first job</h2>
+        <div class="callout career" style="font-size:17px;"><span class="k">Career note</span>MUI, Chakra, shadcn/ui, Radix Themes — every serious React component library makes this same static-vs-interactive split internally, whether or not the team calls it "Server/Client Components." Recognizing it is a portable skill, not trivia about one codebase.</div>
+        <ul class="bullets">
+          <li>Interview-relevant: "why does this need <code>'use client'</code>?" is a common live-coding follow-up right now.</li>
+          <li>Project-relevant: the pattern to reach for the next time your team builds a shared component folder.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 39 recap quiz ask -->
+    <section class="slide" data-title="Recap quiz" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Recap · post-test</div>
+        <h2 class="slide-title">Applying it: three scenarios</h2>
+        <div class="slide-body" style="justify-content:flex-start; gap:18px;">
+          <div class="case-box"><span class="k">R1</span>A personal blog vs. a live stock-ticker page. Which rendering strategy fits each?</div>
+          <div class="case-box"><span class="k">R2</span>This file has <code>'use client'</code> but no hooks, no handlers, no browser-only APIs. Is the directive necessary?</div>
+          <div class="case-box"><span class="k">R3</span>A shared Toast component auto-dismisses after 4 seconds and animates in/out. Does it need <code>'use client'</code>?</div>
+          <p class="slide-sub">Chat your answers to all three — I'll reveal next.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 40 recap quiz reveal -->
+    <section class="slide" data-title="Recap quiz — answers" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Answers</div>
+        <h2 class="slide-title">R1–R3</h2>
+        <div class="slide-body" style="justify-content:flex-start; gap:14px;">
+          <div class="callout answer"><span class="k">R1 — Blog → SSG, ticker → CSR/SSR</span>Blog content barely changes (cacheable). A stock ticker must be fresh every second — baking it into static HTML would be stale instantly.</div>
+          <div class="callout answer"><span class="k">R2 — No, not necessary</span>It compiles fine, but opts the whole subtree into client JS for zero benefit — a common real-world anti-pattern, not just a quiz trick.</div>
+          <div class="callout answer"><span class="k">R3 — Yes</span>A dismiss timer and animation state both require a live component instance in the browser.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 41 applied activity -->
+    <section class="slide" data-title="Applied activity" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Applied activity</div>
+        <h2 class="slide-title">Sketch the boundary</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <div class="case-box"><span class="k">The page</span>A marketing landing page: a hero banner, a testimonials section, a pricing table (all static copy) — plus a live chat widget (open/close, message list) and an email signup form (validates input, submits).</div>
+          <div class="prompt-badge"><b>On your own, then chat</b>Sketch which pieces are Server Components and which are Client Components. Be ready to justify the chat widget and the signup form specifically.</div>
+          <div class="time-badge"><span class="time-num">5</span><span class="time-label">minutes<br/>work quietly, then post in chat</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 42 debrief -->
+    <section class="slide" data-title="Activity debrief" style="--accent:var(--server)">
+      <div class="slide-inner">
+        <div class="kicker k-server"><span class="dot"></span>Debrief</div>
+        <h2 class="slide-title">One suggested breakdown</h2>
+        <div class="slide-body" style="justify-content:flex-start;">
+          <table class="matrix">
+            <tr><th>Piece</th><th>Type</th><th>Why</th></tr>
+            <tr><td class="dim">Hero / testimonials / pricing</td><td><span class="tag tag-server">Server</span></td><td>Static copy, no state, no handlers</td></tr>
+            <tr><td class="dim">Chat widget</td><td><span class="tag tag-client">Client</span></td><td>Open/close state, message list, handlers</td></tr>
+            <tr><td class="dim">Signup form's heading + copy</td><td><span class="tag tag-server">Server</span></td><td>Still just static text — doesn't need to be client</td></tr>
+            <tr><td class="dim">Signup <code>&lt;form&gt;</code> itself</td><td><span class="tag tag-client">Client</span></td><td>Validation state + submit handler</td></tr>
+          </table>
+          <p class="slide-sub">Notice the form's heading stays server even though it sits right next to a client boundary — the split is per component, down to a very fine grain.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 43 closing -->
+    <section class="slide hero" data-title="Closing" style="--accent:var(--quiz)">
+      <div class="slide-inner">
+        <div class="kicker k-quiz"><span class="dot"></span>Closing</div>
+        <h2 class="slide-title">Takeaways</h2>
+        <ul class="bullets" style="font-size:20px;">
+          <li>Rendering is a per-component decision now, not a per-page one.</li>
+          <li>Build time (once, ahead) vs. runtime (live, per visitor) is the axis everything else sits on.</li>
+          <li>"It depends" is often the correct, deliberate answer — not a cop-out.</li>
+          <li>Real component libraries (MUI, shadcn/ui, Radix, <code>@old-st/ui</code>) all make this same split.</li>
+        </ul>
+        <p class="slide-sub" style="margin-top:16px; font-size:19px;">Questions? Drop them in chat.</p>
+      </div>
+    </section>
+
+  </div>
+  <div class="navbar">
+    <div class="nav-group">
+      <button class="nav-btn" id="prevBtn">← Prev</button>
+      <button class="nav-btn" id="nextBtn">Next →</button>
+    </div>
+    <div class="nav-group">
+      <select class="jump" id="jumpSelect"></select>
+      <span class="counter" id="counter">1 / 57</span>
+    </div>
+    <button class="notes-toggle" id="notesToggle">Presenter notes: off</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var current = 0;
+  var progress = document.getElementById('progress');
+  var counter = document.getElementById('counter');
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var jumpSelect = document.getElementById('jumpSelect');
+
+  slides.forEach(function(s, i){
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = (i+1) + '. ' + (s.getAttribute('data-title') || ('Slide ' + (i+1)));
+    jumpSelect.appendChild(opt);
+  });
+
+  function render(){
+    slides.forEach(function(s, i){ s.classList.toggle('active', i === current); });
+    progress.style.width = ((current+1)/total*100) + '%';
+    counter.textContent = (current+1) + ' / ' + total;
+    jumpSelect.value = current;
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === total - 1;
+    slides[current].scrollTop = 0;
+  }
+  function go(i){ current = Math.max(0, Math.min(total-1, i)); render(); }
+
+  prevBtn.addEventListener('click', function(){ go(current-1); });
+  nextBtn.addEventListener('click', function(){ go(current+1); });
+  jumpSelect.addEventListener('change', function(){ go(parseInt(jumpSelect.value,10)); });
+
+  document.addEventListener('keydown', function(e){
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown'){ go(current+1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp'){ go(current-1); }
+  });
+
+  render();
+
+  /* presenter notes toggle — default OFF since this screen gets shared */
+  var notesToggle = document.getElementById('notesToggle');
+  var NOTES_KEY = 'render-reveal-notes-on-v2';
+  var notesOn = false;
+  try { var saved = localStorage.getItem(NOTES_KEY); if (saved !== null) notesOn = saved === '1'; } catch(e){}
+  function applyNotes(){
+    document.body.classList.toggle('notes-on', notesOn);
+    notesToggle.classList.toggle('on', notesOn);
+    notesToggle.textContent = 'Presenter notes: ' + (notesOn ? 'on' : 'off');
+  }
+  applyNotes();
+  notesToggle.addEventListener('click', function(){
+    notesOn = !notesOn;
+    try { localStorage.setItem(NOTES_KEY, notesOn ? '1' : '0'); } catch(e){}
+    applyNotes();
+  });
+
+  /* whiteboard — persists what the presenter types across navigation within this browser */
+  document.querySelectorAll('.whiteboard').forEach(function(wb){
+    var key = 'render-reveal-whiteboard-' + (wb.getAttribute('data-wb-key') || 'default');
+    try { var saved = localStorage.getItem(key); if (saved) wb.innerText = saved; } catch(e){}
+    wb.addEventListener('input', function(){
+      try { localStorage.setItem(key, wb.innerText); } catch(e){}
+    });
+  });
+})();
+</script>
+</body>
+</html>
